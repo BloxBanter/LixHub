@@ -35,33 +35,69 @@ local pizzamacroenabled
 local function sendWebhook(messageType, stageNumber)
     if not ValidWebhook then return end
 
-    local title = "LixHub Notification"
-    local description = "No message type matched."
-    local color = 0x5865F2
+    local minutes = math.floor(Runtime / 60)
+    local seconds = Runtime % 60
+    local runtimeformatted = string.format("%d minutes %d seconds", minutes, seconds)
+    local data -- declare `data` outside the if-blocks
 
     if messageType == "test" then
-        title = "📢 Test Webhook"
-        description = "This is a test message from LixHub."
-        color = 0x3498DB
+        data = {
+            username = "LixHub Bot",
+            embeds = {{
+                title = "📢 LixHub Notification",
+                description = "Test webhook sent successfully",
+                color = 0x5865F2,
+                footer = {
+                    text = "LixHub Auto Logger"
+                },
+                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            }}
+        }
 
     elseif messageType == "stage" then
-        title = "✅ Stage Completed"
-        description = "A player just finished **Stage " .. tostring(stageNumber) .. "**!"
-        color = 0x00FF00
+        data = {
+            embeds = {{
+                title = "📢 LixHub Notification",
+                description = "**Game Finished**",
+                color = 5814783,
+                fields = {
+                    {
+                        name = "👤 Player",
+                        value = "||" .. player.Name .. "||",
+                        inline = true
+                    },
+                    {
+                        name = "⏱️ Runtime",
+                        value = runtimeformatted,
+                        inline = true
+                    },
+                    {
+                        name = "🗺️ Macro",
+                        value = "Unknown",
+                        inline = true
+                    },
+                    {
+                        name = "📈 Script Version",
+                        value = "v1.0.0",
+                        inline = true
+                    },
+                    {
+                        name = "🪙 Coins",
+                        value = tostring(player.Coins.Value),
+                        inline = true
+                    },
+                    {
+                        name = "💎 Gems",
+                        value = tostring(player.Gems.Value),
+                        inline = true
+                    }
+                }
+            }}
+        }
+    else
+        -- If the messageType doesn't match anything
+        return
     end
-
-    local data = {
-        username = "LixHub Bot",
-        embeds = {{
-            title = title,
-            description = description,
-            color = color,
-            footer = {
-                text = "LixHub Auto Logger"
-            },
-            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-        }}
-    }
 
     local payload = HttpService:JSONEncode(data)
 
@@ -85,10 +121,6 @@ local function sendWebhook(messageType, stageNumber)
         warn("No compatible HTTP request method found.")
     end
 end
-
-
-
-
 
 local Window = Rayfield:CreateWindow({
    Name = "LixHub",
@@ -545,4 +577,3 @@ task.spawn(function()
 end)
 
 Rayfield:LoadConfiguration()
-
