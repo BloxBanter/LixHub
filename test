@@ -1,0 +1,1239 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local remoteFunction = game.ReplicatedStorage:WaitForChild("RemoteFunction")
+local remoteEvent = game.ReplicatedStorage:WaitForChild("RemoteEvent")
+local player = game.Players.LocalPlayer
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local Gui = LocalPlayer:WaitForChild("PlayerGui")
+
+local Runtime = 0
+local ValidWebhook
+
+local StageFinishedEnabled
+
+local AutoSkipEnabled
+local AutoRestartEnabled
+local AutoLobbyEnabled
+local AutoVoteMap
+local AutoStartGame
+
+local AutoJoinSurvival
+local AutoJoinSpecial
+local AutoJoinHardcore
+local AutoMapOverride
+
+local selectedMapOverride
+local selectedDifficulty
+local selectedSpecialMode
+
+local pizzamacroenabled
+
+local recording = false
+local recordStartTime = 0
+local recordedCalls = {}
+local currentRecordingMacroPath = nil
+local isRecording = false
+
+local playbackEnabled = false
+
+local playbackCoroutine
+
+local hubFolder = "LixHub/macros"
+local macroFolder = hubFolder .. "/3260590327"  -- You can also use game.Name for game name
+
+-- Ensure folder exists (some executors don't need this, but some do)
+if not isfolder then
+    error("Executor does not support isfolder")
+end
+
+if not isfolder(hubFolder) then makefolder(hubFolder) end
+if not isfolder(macroFolder) then makefolder(macroFolder) end
+
+-- Deep copy helper
+local function deepCopy(t)
+    if type(t) ~= "table" then return t end
+    local copy = {}
+    for k, v in pairs(t) do
+        copy[k] = deepCopy(v)
+    end
+    return copy
+end
+
+local function inspectValue(value, depth)
+    depth = depth or 0
+    local indent = string.rep("  ", depth)
+    
+    if depth > 3 then return "..." end -- Prevent infinite recursion
+    
+    local valueType = type(value)
+    if valueType == "table" then
+        local result = "{\n"
+        for k, v in pairs(value) do
+            result = result .. indent .. "  [" .. tostring(k) .. "] = " .. inspectValue(v, depth + 1) .. ",\n"
+        end
+        result = result .. indent .. "}"
+        return result
+    elseif valueType == "userdata" then
+        local success, typeName = pcall(function() return typeof(value) end)
+        if success then
+            if typeName == "Vector3" then
+                return string.format("Vector3(%.2f, %.2f, %.2f)", value.X, value.Y, value.Z)
+            elseif typeName == "Instance" then
+                return string.format("Instance(%s: %s)", value.ClassName, value.Name)
+            else
+                return typeName
+            end
+        else
+            return "userdata"
+        end
+    else
+        return tostring(value)
+    end
+end
+
+-- Serialize args, convert Troop Instance to TroopPosition Vector3
+-- Serialize args, convert Troop Instance to TroopPosition Vector3 AND rotation
+local function serializeArgs(args)
+    local copy = deepCopy(args)
+    
+    -- Handle Troops Place calls (args[3] contains Position as Vector3)
+    if copy[3] and type(copy[3]) == "table" and copy[3]["Position"] and typeof(copy[3]["Position"]) == "Vector3" then
+        local pos = copy[3]["Position"]
+        copy[3]["Position"] = {
+            X = pos.X,
+            Y = pos.Y,
+            Z = pos.Z
+        }
+        print("✅ PLACE: Converted Vector3 Position to table in serializeArgs")
+    end
+    
+    -- Check index [4] for Troops Upgrade calls (matching your hook code)
+    if copy[4] and type(copy[4]) == "table" then
+        if copy[4]["Troop"] and typeof(copy[4]["Troop"]) == "Instance" then
+            local troop = copy[4]["Troop"]
+            local pos
+            local rotation = CFrame.new(0, 0, 0) * CFrame.Angles(0, 0, 0)
+
+            if troop.PrimaryPart then
+                pos = troop.PrimaryPart.Position
+                -- Capture rotation from CFrame
+                local cf = troop.PrimaryPart.CFrame
+                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+            elseif troop:IsA("Model") then
+                local basePart = troop:FindFirstChildWhichIsA("BasePart")
+                if basePart then
+                    pos = basePart.Position
+                    local cf = basePart.CFrame
+                    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                    rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+                else
+                    pos = Vector3.new()
+                    rotation = {1, 0, 0, 0, 1, 0, 0, 0, 1} -- Identity rotation
+                end
+            elseif troop:IsA("BasePart") then
+                pos = troop.Position
+                local cf = troop.CFrame
+                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+            else
+                local cf = troop:GetModelCFrame()
+                pos = cf.Position
+                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+            end
+
+            -- Convert Vector3 to serializable table
+            copy[4]["TroopPosition"] = {
+                X = pos.X,
+                Y = pos.Y,
+                Z = pos.Z
+            }
+            
+            -- Add rotation data
+            if rotation then
+                copy[4]["TroopRotation"] = rotation
+            end
+            
+            copy[4]["Troop"] = nil -- Remove the instance reference
+            print("✅ UPGRADE: Converted Troop instance to TroopPosition + Rotation in serializeArgs")
+        end
+    end
+    
+    -- Also check index [3] for Troop upgrades (backward compatibility)
+    if copy[3] and type(copy[3]) == "table" then
+        if copy[3]["Troop"] and typeof(copy[3]["Troop"]) == "Instance" then
+            local troop = copy[3]["Troop"]
+            local pos
+            local rotation = CFrame.new(0, 0, 0) * CFrame.Angles(0, 0, 0)
+
+            if troop.PrimaryPart then
+                pos = troop.PrimaryPart.Position
+                local cf = troop.PrimaryPart.CFrame
+                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+            elseif troop:IsA("Model") then
+                local basePart = troop:FindFirstChildWhichIsA("BasePart")
+                if basePart then
+                    pos = basePart.Position
+                    local cf = basePart.CFrame
+                    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                    rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+                else
+                    pos = Vector3.new()
+                    rotation = {1, 0, 0, 0, 1, 0, 0, 0, 1}
+                end
+            elseif troop:IsA("BasePart") then
+                pos = troop.Position
+                local cf = troop.CFrame
+                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+            else
+                local cf = troop:GetModelCFrame()
+                pos = cf.Position
+                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
+                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+            end
+
+            -- Convert Vector3 to serializable table
+            copy[3]["TroopPosition"] = {
+                X = pos.X,
+                Y = pos.Y,
+                Z = pos.Z
+            }
+            
+            -- Add rotation data
+            if rotation then
+                copy[3]["TroopRotation"] = rotation
+            end
+            
+            copy[3]["Troop"] = nil
+            print("✅ UPGRADE: Converted Troop instance to TroopPosition + Rotation in serializeArgs (index 3)")
+        end
+    end
+    
+    return copy
+end
+
+-- Find troop in workspace.Towers by closest position
+-- Find troop in workspace.Towers by closest position and optionally rotation
+local function findTroopByPosition(pos, rotationData, maxRetries)
+    maxRetries = maxRetries or 3
+    local closestTroop = nil
+    local closestDistance = 5
+    
+    for attempt = 1, maxRetries do
+        local towersFolder = workspace:FindFirstChild("Towers")
+        if not towersFolder then
+            warn("No 'Towers' folder found in workspace!")
+            if attempt < maxRetries then
+                task.wait(0.2)
+                continue
+            end
+            return nil
+        end
+
+        print("🔍 Looking for troop near position:", pos, "(Attempt", attempt .. "/" .. maxRetries .. ")")
+        print("🏗️ Found", #towersFolder:GetChildren(), "towers in folder")
+
+        closestTroop = nil
+        closestDistance = 5
+
+        for _, troop in pairs(towersFolder:GetChildren()) do
+            local primaryPart = troop.PrimaryPart or troop:FindFirstChildWhichIsA("BasePart")
+            if primaryPart then
+                local dist = (primaryPart.Position - pos).Magnitude
+                
+                -- Bonus: If rotation data exists, also check rotation similarity
+                local rotationMatch = true
+                if rotationData and type(rotationData) == "table" and #rotationData == 9 then
+                    local currentCF = primaryPart.CFrame
+                    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = currentCF:GetComponents()
+                    local currentRotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
+                    
+                    -- Check if rotations are similar (within tolerance)
+                    local rotationDiff = 0
+                    for i = 1, 9 do
+                        rotationDiff = rotationDiff + math.abs(currentRotation[i] - rotationData[i])
+                    end
+                    
+                    -- If rotation is too different, penalize this match
+                    if rotationDiff > 0.5 then
+                        rotationMatch = false
+                        dist = dist + 2 -- Add penalty to distance
+                    end
+                end
+                
+                print("📏 Troop", troop.Name, "at", primaryPart.Position, "distance:", dist, "rotation match:", rotationMatch)
+                if dist < closestDistance then
+                    closestDistance = dist
+                    closestTroop = troop
+                    print("✅ New closest troop found:", troop.Name, "distance:", dist)
+                end
+            end
+        end
+        
+        if closestTroop then
+            print("🎯 Found closest troop:", closestTroop.Name, "at distance:", closestDistance)
+            return closestTroop
+        else
+            print("❌ No troop found within", closestDistance, "studs of", pos)
+            if attempt < maxRetries then
+                print("⏳ Waiting 0.3s before retry...")
+                task.wait(0.3)
+            end
+        end
+    end
+    
+    return nil
+end
+
+
+-- Deserialize args, replace TroopPosition with actual troop Instance
+
+local function deserializeArgs(args)
+    local copy = deepCopy(args)
+    
+    -- Handle Place calls - convert table Position back to Vector3
+    if copy[3] and type(copy[3]) == "table" and copy[3]["Position"] and type(copy[3]["Position"]) == "table" then
+        local posData = copy[3]["Position"]
+        if posData.X and posData.Y and posData.Z then
+            copy[3]["Position"] = Vector3.new(posData.X, posData.Y, posData.Z)
+            print("✅ PLACE: Converted table Position back to Vector3")
+        end
+    end
+    
+    -- Check index [4] for Troops Upgrade calls
+    if copy[4] and type(copy[4]) == "table" then
+        if copy[4]["TroopPosition"] then
+            -- Convert the position table back to Vector3
+            local posData = copy[4]["TroopPosition"]
+            local troopPosition
+            
+            if type(posData) == "table" and posData.X and posData.Y and posData.Z then
+                troopPosition = Vector3.new(posData.X, posData.Y, posData.Z)
+            else
+                troopPosition = posData
+            end
+            
+            -- Get rotation data if available
+            local rotationData = copy[4]["TroopRotation"]
+            
+            local troopInstance = findTroopByPosition(troopPosition, rotationData)
+            if troopInstance then
+                copy[4]["Troop"] = troopInstance
+                print("✅ UPGRADE: Found troop at position:", troopPosition)
+            else
+                warn("❌ Could not find troop near position:", troopPosition)
+                copy[4]["Troop"] = nil
+            end
+            -- Remove serialized data since we've converted it back
+            copy[4]["TroopPosition"] = nil
+            copy[4]["TroopRotation"] = nil
+        end
+    end
+    
+    -- Also check index [3] for backward compatibility
+    if copy[3] and type(copy[3]) == "table" then
+        if copy[3]["TroopPosition"] then
+            local posData = copy[3]["TroopPosition"]
+            local troopPosition
+            
+            if type(posData) == "table" and posData.X and posData.Y and posData.Z then
+                troopPosition = Vector3.new(posData.X, posData.Y, posData.Z)
+            else
+                troopPosition = posData
+            end
+            
+            -- Get rotation data if available
+            local rotationData = copy[3]["TroopRotation"]
+            
+            local troopInstance = findTroopByPosition(troopPosition, rotationData)
+            if troopInstance then
+                copy[3]["Troop"] = troopInstance
+                print("✅ UPGRADE: Found troop at position:", troopPosition)
+            else
+                warn("❌ Could not find troop near position:", troopPosition)
+                copy[3]["Troop"] = nil
+            end
+            copy[3]["TroopPosition"] = nil
+            copy[3]["TroopRotation"] = nil
+        end
+    end
+    
+    return copy
+end
+
+
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+-- In your hook code, change this part:
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "InvokeServer" and self == remoteFunction then
+        local args = {...}
+        if recording then
+            local timestamp = tick() - recordStartTime
+
+            -- DETAILED DEBUG: Print the complete structure
+            print("=== RECORDING CALL ===")
+            print("Args count:", #args)
+            for i, arg in ipairs(args) do
+                print(string.format("Arg[%d] (%s): %s", i, type(arg), inspectValue(arg)))
+            end
+            print("=====================")
+
+            -- Your existing logic for upgrades
+            if args[1] == "Troops" and args[2] == "Upgrade" and type(args[3]) == "string" and type(args[4]) == "table" then
+                local upgradeData = args[4]
+
+                if upgradeData.Troop and typeof(upgradeData.Troop) == "Instance" then
+                    local troopPos
+                    if upgradeData.Troop.PrimaryPart then
+                        troopPos = upgradeData.Troop.PrimaryPart.Position
+                    else
+                        local basePart = upgradeData.Troop:FindFirstChildWhichIsA("BasePart")
+                        troopPos = basePart and basePart.Position or Vector3.new()
+                    end
+                    
+                    local copiedArgs = deepCopy(args)
+                    copiedArgs[4] = {
+                        TroopPosition = {
+                            X = troopPos.X,
+                            Y = troopPos.Y,
+                            Z = troopPos.Z
+                        },
+                        Path = upgradeData.Path
+                    }
+                    table.insert(recordedCalls, {time = timestamp, args = copiedArgs})
+                    print("✅ UPGRADE: Converted Vector3 to table")
+                    return oldNamecall(self, ...)
+                end
+            end
+
+            -- For all other calls, use serializeArgs and print what it produces
+            print("📝 Using serializeArgs...")
+            local serializedArgs = serializeArgs(args)
+            
+            print("--- BEFORE SERIALIZATION ---")
+            for i, arg in ipairs(args) do
+                print(string.format("Original[%d]: %s", i, inspectValue(arg, 1)))
+            end
+            
+            print("--- AFTER SERIALIZATION ---")
+            for i, arg in ipairs(serializedArgs) do
+                print(string.format("Serialized[%d]: %s", i, inspectValue(arg, 1)))
+            end
+            
+            table.insert(recordedCalls, {time = timestamp, args = serializedArgs})
+            print("💾 Recorded call")
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+-- Save macro to a file
+local function saveMacroToFile(macroName, data)
+    local path = gameFolder .. "/" .. macroName .. ".txt"
+    local json = HttpService:JSONEncode(data)
+    writefile(path, json)
+    print("✅ Saved macro to:", path)
+end
+
+-- Load macro from a file
+local function loadMacroFromFile(macroName)
+    local path = gameFolder .. "/" .. macroName .. ".txt"
+    if not isfile(path) then
+        warn("❌ Macro not found:", path)
+        return nil
+    end
+    local json = readfile(path)
+    local data = HttpService:JSONDecode(json)
+    print("📂 Loaded macro:", path)
+    return data
+end
+
+-- Optional: List macros for this game
+local function listMacros()
+    local files = listfiles(gameFolder)
+    local macroNames = {}
+    for _, file in ipairs(files) do
+        local name = file:match("([^/\\]+)%.txt$")
+        if name then table.insert(macroNames, name) end
+    end
+    return macroNames
+end
+
+local macroList = {}
+for _, file in ipairs(listfiles(macroFolder)) do
+    local name = file:match(macroFolder .. "/(.-)%.txt$")
+    if name then
+        table.insert(macroList, name)
+    end
+end
+
+local function sendWebhook(messageType, stageNumber)
+    if not ValidWebhook then return end
+
+    local minutes = math.floor(Runtime / 60)
+    local seconds = Runtime % 60
+    local runtimeformatted = string.format("%d minutes %d seconds", minutes, seconds)
+    local data -- declare `data` outside the if-blocks
+
+    if messageType == "test" then
+        data = {
+            username = "LixHub Bot",
+            embeds = {{
+                title = "📢 LixHub Notification",
+                description = "Test webhook sent successfully",
+                color = 0x5865F2,
+                footer = {
+                    text = "LixHub Auto Logger"
+                },
+                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            }}
+        }
+
+    elseif messageType == "stage" then
+        data = {
+            embeds = {{
+                title = "📢 LixHub Notification",
+                description = "**Game Finished**",
+                color = 5814783,
+                fields = {
+                    {
+                        name = "👤 Player",
+                        value = "||" .. player.Name .. "||",
+                        inline = true
+                    },
+                    {
+                        name = "⏱️ Runtime",
+                        value = runtimeformatted,
+                        inline = true
+                    },
+                    {
+                        name = "🗺️ Macro",
+                        value = "Unknown",
+                        inline = true
+                    },
+                    {
+                        name = "📈 Script Version",
+                        value = "v1.0.0",
+                        inline = true
+                    },
+                    {
+                        name = "🪙 Coins",
+                        value = tostring(player.Coins.Value),
+                        inline = true
+                    },
+                    {
+                        name = "💎 Gems",
+                        value = tostring(player.Gems.Value),
+                        inline = true
+                    }
+                }
+            }}
+        }
+    else
+        -- If the messageType doesn't match anything
+        return
+    end
+
+    local payload = HttpService:JSONEncode(data)
+
+    local requestFunc = (syn and syn.request) or (http and http.request) or request
+    if requestFunc then
+        local success, result = pcall(function()
+            return requestFunc({
+                Url = ValidWebhook,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = payload
+            })
+        end)
+
+        if not success then
+            warn("Webhook failed to send: " .. tostring(result))
+        end
+    else
+        warn("No compatible HTTP request method found.")
+    end
+end
+
+local Window = Rayfield:CreateWindow({
+   Name = "LixHub",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   LoadingTitle = "LixHub - Loading",
+   LoadingSubtitle = "by Lixtron",
+   Theme = "Abyss", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
+
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "LixHub", -- Create a custom folder for your hub/game
+      FileName = "config"
+   },
+
+   Discord = {
+      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
+      Invite = "noinvitelink", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
+      RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+   },
+
+   KeySystem = false, -- Set this to true to use our key system
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+      FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+      Key = {"Hello"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+   }
+})
+
+local MainTab = Window:CreateTab("Main", 4483362458) -- Title, Image
+
+local RuntimeLabel = MainTab:CreateLabel("Script Runtime: 0s", "circle-play") -- Title, Icon, Color, IgnoreTheme
+
+local MapOverriderDropdown = MainTab:CreateDropdown({
+   Name = "Map Overrider",
+   Options = {"Select Option","Abandoned City","Autumn Falling","Crossroads","Forest Camp","Fungi Island","Grass Isle","Harbor","Necropolis","Portland","Rocket Arena","Sky Islands","Toyboard","Tropical Isles","U-Turn","Chess Board","Crystal Cave","Cyber City","Deserted Village","Farm Lands","Four Seasons","Iceville","Lighthaos","Marshlands","Medieval Times","Meltdown","Moon Base","Nether","Night Station","Retro Lighthouse","Ruby Escort","Simplicity","Spring Fever","Stained Temple","Sugar Rush","Tropical Industries","Winter Bridges","Wrecked Battlefield","Wrecked Battlefield II","Abyssal Trench","Candy Valley","Cataclysm","Construction Crazy","Dusty Bridges","Forgotten Docks","Glided Path","Retro Zone","Sacred Mountains","The Heights","Winter Abyss","Black Spot Exchange","Dead Ahead","Hot Spot","Infernal Abyss","Lay By","Mason Arch","Space City","Winter Stronghold"},
+   CurrentOption = {"Select Option"},
+   MultipleOptions = false,
+   Flag = "MapOverrider", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Options)
+   selectedMapOverride = Options[1]
+   end,
+})
+
+local MapOverriderToggle = MainTab:CreateToggle({
+   Name = "Enable Map Overrider",
+   CurrentValue = false,
+   Flag = "MapOverrider1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   AutoMapOverride = Value
+   end,
+})
+
+local SurvivalJoinerDropdown = MainTab:CreateDropdown({
+   Name = "Auto Survival Joiner",
+   Options = {"Easy","Casual","Intermediate","Molten","Fallen"},
+   CurrentOption = {"Easy"},
+   MultipleOptions = false,
+   Flag = "SurvivalDifficulty", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Options)
+      selectedDifficulty = Options[1]
+   end,
+})
+
+local SurvivalJoinerToggle = MainTab:CreateToggle({
+   Name = "Enable Auto Survival Joiner",
+   CurrentValue = false,
+   Flag = "AutoSurvival", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   AutoJoinSurvival = Value
+   end,
+})
+
+local SpecialJoinerDropdown = MainTab:CreateDropdown({
+   Name = "Auto Special Joiner",
+   Options = {"halloween","badlands","polluted"},
+   CurrentOption = {"halloween"},
+   MultipleOptions = false,
+   Flag = "SpecialJoiner", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Options)
+   selectedSpecialMode = Options[1]
+   end,
+})
+
+local SpecialJoinerToggle = MainTab:CreateToggle({
+   Name = "Enable Auto Special Joiner",
+   CurrentValue = false,
+   Flag = "SpecialJoiner1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   AutoJoinSpecial = Value
+   end,
+})
+
+local HardcoreJoinerToggle = MainTab:CreateToggle({
+   Name = "Auto Hardcore Joiner",
+   CurrentValue = false,
+   Flag = "HardcoreJoiner1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+      AutoJoinHardcore = Value
+   end,
+})
+
+local StatsTab = Window:CreateTab("Stats", 4483362458) -- Title, Image
+
+local CoinTrackerLabel = StatsTab:CreateLabel("Coins: "..LocalPlayer.Coins.Value, "circle-dollar-sign") -- Title, Icon, Color, IgnoreTheme
+local GemTrackerLabel =  StatsTab:CreateLabel("Gems: "..LocalPlayer.Gems.Value, "gem") -- Title, Icon, Color, IgnoreTheme
+local TimescaleTicketsTrackerLabel =  StatsTab:CreateLabel("TimescaleTickets: "..LocalPlayer.TimescaleTickets.Value, "ticket") -- Title, Icon, Color, IgnoreTheme
+local ReviveTicketsTrackerLabel =  StatsTab:CreateLabel("ReviveTickets: "..LocalPlayer.ReviveTickets.Value, "ticket") -- Title, Icon, Color, IgnoreTheme
+local SpinTicketsTrackerLabel =  StatsTab:CreateLabel("SpinTickets: "..LocalPlayer.SpinTickets.Value, "ticket") -- Title, Icon, Color, IgnoreTheme
+local LevelTrackerLabel =  StatsTab:CreateLabel("Level: "..LocalPlayer.Level.Value, "gauge") -- Title, Icon, Color, IgnoreTheme
+
+local GameTab = Window:CreateTab("Game", 4483362458) -- Title, Image
+
+local AutoRestartToggle = GameTab:CreateToggle({
+   Name = "Auto Restart",
+   CurrentValue = false,
+   Flag = "AutoRestart", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   AutoRestartEnabled = Value
+   end,
+})
+
+local AutoLobbyToggle = GameTab:CreateToggle({
+   Name = "Auto return to lobby",
+   CurrentValue = false,
+   Flag = "AutoLobby", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   AutoLobbyEnabled = Value
+   end,
+})
+
+local AutoSkipToggle = GameTab:CreateToggle({
+   Name = "Auto skip",
+   CurrentValue = false,
+   Flag = "AutoSkip", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+      AutoSkipEnabled = Value
+   end,
+})
+
+local AutoVoteToggle = GameTab:CreateToggle({
+   Name = "Auto vote for map (select in map overrider)",
+   CurrentValue = false,
+   Flag = "AutoVote", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+      AutoVoteMap = Value
+   end,
+})
+
+local AutoStartToggle = GameTab:CreateToggle({
+   Name = "Auto start game (votes ready)",
+   CurrentValue = false,
+   Flag = "AutoStart", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+      AutoStartGame = Value
+   end,
+})
+
+local MacroTab = Window:CreateTab("Macro", 4483362458) -- Title, Image
+
+local MacroList = MacroTab:CreateDropdown({
+   Name = "Select Macro",
+   Options = macroList,
+   CurrentOption = "",
+   MultipleOptions = false,
+   Flag = "SelectMacro", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+  Callback = function(selected)
+    print("Selected macro:", selected)
+     selected = selected[1] 
+   local success, err = pcall(function()
+    local macroPath = macroFolder .. "/" .. selected .. ".txt"
+    if isfile(macroPath) then
+        local contents = readfile(macroPath)
+        local data = HttpService:JSONDecode(contents)
+        currentRecordingMacroPath = macroPath -- ✅ Set path for saving
+        recordedCalls = data -- Optional: load existing data
+        print("✅ Loaded macro:", selected)
+    else
+        warn("❌ Macro file not found:", macroPath)
+    end
+end)
+end
+})
+
+local CreateMacro = MacroTab:CreateInput({
+   Name = "Create Macro",
+   CurrentValue = "",
+   PlaceholderText = "Input Name",
+   RemoveTextAfterFocusLost = true,
+   Flag = "CreateMacroInput",
+   Callback = function(Text)
+    if Text == "" then
+            warn("Macro name is empty")
+            return
+        end
+        -- Sanitize file name (no special chars or spaces)
+        local sanitized = Text:gsub("[%c%p%s]", "_")
+        local filePath = macroFolder .. "/" .. sanitized .. ".txt"
+
+        if not isfile(filePath) then
+            writefile(filePath, HttpService:JSONEncode({}))
+            print("✅ Created new macro file:", sanitized)
+
+            -- Add to dropdown list
+            table.insert(macroList, sanitized)
+            MacroList:Refresh(macroList, true)
+        else
+            print("⚠️ Macro already exists, using existing file.")
+        end
+
+        -- Set this as the file to record into
+   end,
+})
+
+local RecordButtonToggle = MacroTab:CreateToggle({
+   Name = "Record",
+   CurrentValue = false,
+   Flag = "RecordToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+    if not currentRecordingMacroPath then
+               warn("❌ No macro file selected/created to record into.")
+               return
+           end
+
+            isRecording = Value
+             if isRecording == true then
+               recordedCalls = {}                -- Clear old data
+               recordStartTime = tick()
+               recording = true
+               print("🟢 Recording started")
+               else
+               recording = false
+               print("🔴 Recording stopped, saving...")
+
+               -- Save to file
+               if currentRecordingMacroPath then
+                   writefile(currentRecordingMacroPath, HttpService:JSONEncode(recordedCalls))
+                   print("💾 Saved macro to file:", currentRecordingMacroPath)
+               end
+           end
+   end,
+})
+
+local Toggle = MacroTab:CreateToggle({
+   Name = "Play",
+   CurrentValue = false,
+   Flag = "PlayMacro",
+   Callback = function(value)
+    playbackEnabled = value
+        if playbackEnabled then
+          local selectedMacro = MacroList.CurrentOption[1]
+            if not selectedMacro or selectedMacro == "" then
+                warn("No macro selected for playback!")
+                playbackEnabled = false
+                return
+            end
+             local macroPath = macroFolder .. "/" .. selectedMacro .. ".txt"
+            if not isfile(macroPath) then
+                warn("Macro file does not exist for playback: " .. macroPath)
+                playbackEnabled = false
+                return
+            end
+             local success, data = pcall(function()
+                return HttpService:JSONDecode(readfile(macroPath))
+            end)
+            if not success then
+                warn("Failed to load macro data for playback:", data)
+
+                playbackEnabled = false
+                return
+            end
+
+            print("🟢 Starting macro playback with", #data, "calls")
+
+            spawn(function()
+                for i, call in ipairs(data) do
+                    if not playbackEnabled then
+                        print("⏹️ Playback stopped by user")
+                        break
+                    end
+
+                    local delayTime = i == 1 and call.time or (call.time - data[i-1].time)
+                    if delayTime > 0 then
+                        task.wait(delayTime)
+                    end
+
+                    if not playbackEnabled then
+                        print("⏹️ Playback stopped by user")
+                        break
+                    end
+
+                    local playbackArgs = deserializeArgs(call.args)
+
+                    -- Handle Place calls (should work now with Vector3 conversion)
+                    if playbackArgs[1] == "Troops" and playbackArgs[2] == "Place" then
+                        print("🏗️ Placing tower at position:", playbackArgs[3].Position)
+                    end
+
+                    -- Handle Upgrade calls
+                    if playbackArgs[1] == "Troops" and playbackArgs[2] == "Upgrade"
+                       and type(playbackArgs[3]) == "string" and type(playbackArgs[4]) == "table" then
+                            task.wait(0.5)
+                        local upgradeData = playbackArgs[4]
+
+                        -- Convert TroopPosition back to Troop instance
+                        if upgradeData.Troop == nil and upgradeData.TroopPosition then
+                             
+                            local posData = upgradeData.TroopPosition
+                            local troopPosition
+                            
+                            if type(posData) == "table" and posData.X and posData.Y and posData.Z then
+                                troopPosition = Vector3.new(posData.X, posData.Y, posData.Z)
+                            else
+                                troopPosition = posData
+                            end
+                            
+                            local troopInstance = findTroopByPosition(troopPosition)
+                            if troopInstance then
+                                upgradeData.Troop = troopInstance
+                                upgradeData.TroopPosition = nil
+                                print("🔧 Found troop for upgrade at position:", troopPosition)
+                            else
+                                warn("Playback upgrade: troop not found near", troopPosition)
+                                continue
+                            end
+                        end
+
+                        -- Make sure Path is a number
+                        if upgradeData.Path then
+                            upgradeData.Path = tonumber(upgradeData.Path) or upgradeData.Path
+                        end
+
+                        -- Rebuild the args exactly as the server expects
+                        playbackArgs = {
+                            playbackArgs[1],   -- "Troops"
+                            playbackArgs[2],   -- "Upgrade"
+                            playbackArgs[3],   -- "Set"
+                            {
+                                Troop = upgradeData.Troop,
+                                Path = upgradeData.Path,
+                            }
+                        }
+                    end
+
+                    local success, result = pcall(function()
+                        return remoteFunction:InvokeServer(unpack(playbackArgs))
+                    end)
+
+                    if success then
+                        local actionType = ""
+                        if playbackArgs[2] == "Place" then
+                            actionType = " (Place)"
+                        elseif playbackArgs[2] == "Upgrade" then
+                            actionType = " (Upgrade)"
+                        end
+                        print("✅ Playback call #" .. i .. actionType .. " successful")
+                    else
+                        warn("❌ Playback call #" .. i .. " failed:", result)
+                        -- Print the args that failed for debugging
+                        print("Failed args:", inspectValue(playbackArgs))
+                    end
+                end
+                
+                -- Reset toggle when playback finishes
+                playbackEnabled = false
+                print("⏹️ Playback finished")
+            end)
+        else
+            print("⏹️ Playback stopped")
+        end
+    end,
+})
+
+
+local Toggle = MacroTab:CreateToggle({
+   Name = "Enable Pizza macro",
+   CurrentValue = false,
+   Flag = "PizzaMacro", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   pizzamacroenabled = Value
+   end,
+})
+
+local WebhookTab = Window:CreateTab("Webhook", 4483362458) -- Title, Image
+
+WebhookLabel = WebhookTab:CreateLabel("Awaiting Webhook Input...", "cable")
+
+Input = WebhookTab:CreateInput({
+   Name = "Input Webhook",
+   CurrentValue = "",
+   PlaceholderText = "Input Webhook",
+   RemoveTextAfterFocusLost = false,
+   Flag = "Webhook",
+   Callback = function(Text)
+      if string.find(Text, "https://discord.com/api/webhooks/") then
+         ValidWebhook = Text
+         WebhookLabel:Set("✅ Webhook URL set!")
+      elseif Text == "" then
+         WebhookLabel:Set("Awaiting Webhook Input...")
+      else
+         ValidWebhook = nil
+         WebhookLabel:Set("❌ Invalid Webhook URL")
+      end
+   end,
+})
+
+local TestWebhookButton = WebhookTab:CreateButton({
+   Name = "Test webhook",
+   Callback = function()
+      if ValidWebhook then
+         sendWebhook("test", 3)
+          Rayfield:Notify({
+                Title = "Webhook Sent",
+                Content = "Test message sent successfully!",
+                Duration = 5,
+                Image = 4483362458
+            })
+      else
+          Rayfield:Notify({
+                Title = "❌ Cannot send",
+                Content = "invalid webhook!",
+                Duration = 5,
+                Image = 4483362458
+            })
+      end
+   end,
+})
+
+local StageFinishedToggle = WebhookTab:CreateToggle({
+   Name = "Stage finished",
+   CurrentValue = false,
+   Flag = "StageFinishedWebhook",
+   Callback = function(Value)
+      StageFinishedEnabled = Value
+   end,
+})
+
+local TestStageWebhookButton = WebhookTab:CreateButton({
+   Name = "Test stage webhook",
+   Callback = function()
+      if StageFinishedEnabled == true then
+             sendWebhook("stage", 3)
+      end
+   end,  
+})
+
+
+
+local CreditsTab = Window:CreateTab("Credits", 4483362458) -- Title, Image
+
+local credits1Label =  CreditsTab:CreateLabel("Lixtron", "star") -- Title, Icon, Color, IgnoreTheme
+
+local credits2Label =  CreditsTab:CreateLabel("Rodzinka Aloesow", "star") -- Title, Icon, Color, IgnoreTheme
+
+task.spawn(function()
+   while true do
+      task.wait(1)
+      Runtime += 1
+      RuntimeLabel:Set("Script Runtime: "..Runtime.."s", "circle-play") -- Title, Icon, Color, IgnoreTheme
+   end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        local gameOverVisible = LocalPlayer.PlayerGui.ReactGameRewards.Frame.gameOver
+        if gameOverVisible.Visible == false then
+            if AutoSkipEnabled then
+                  local args = {[1] = "Voting",[2] = "Skip"}
+                  game:GetService("ReplicatedStorage").RemoteFunction:InvokeServer(unpack(args))
+               end
+            end
+            if gameOverVisible.Visible == true then
+               if AutoRestartEnabled then
+                 local args = {[1] = "Voting",[2] = "Skip"}
+                  game:GetService("ReplicatedStorage").RemoteFunction:InvokeServer(unpack(args))
+            end
+            end
+            if gameOverVisible.Visible == true then
+            if AutoLobbyEnabled then
+                TeleportService:Teleport(3260590327, LocalPlayer)
+            end
+         end
+    end
+end)
+
+task.spawn(function()
+   while true do
+      wait(1)
+       local gameOverVisible = LocalPlayer.PlayerGui.ReactGameRewards.Frame.gameOver
+       if gameOverVisible.Visible == true then
+         sendWebhook("stage",3)
+         break
+       end
+   end
+end)
+
+task.spawn(function()
+   while true do
+      wait(1)
+      if workspace:FindFirstChild("Elevators") then 
+      if AutoJoinHardcore == true  then
+         local args = {
+            [1] = "Multiplayer",
+            [2] = "v2:start",
+            [3] = {
+               ["count"] = 1,
+               ["mode"] = "hardcore"
+            }
+         }
+         remoteFunction:InvokeServer(unpack(args))
+      elseif AutoJoinSurvival == true then
+         local args = {
+    [1] = "Multiplayer",
+    [2] = "v2:start",
+    [3] = {
+        ["difficulty"] = tostring(selectedDifficulty),
+        ["count"] = 4,
+        ["mode"] = "survival"
+    }
+}
+         remoteFunction:InvokeServer(unpack(args))
+      elseif AutoJoinSpecial == true then
+local args = {
+    [1] = "Multiplayer",
+    [2] = "v2:start",
+    [3] = {
+        ["count"] = 1,
+        ["mode"] = tostring(selectedSpecialMode)
+    }
+}
+        remoteFunction:InvokeServer(unpack(args))
+      end
+   end
+   end
+end)
+
+task.spawn(function()
+   while true do
+      wait(1)
+      if not workspace:FindFirstChild("Elevators") and AutoMapOverride and selectedMapOverride ~= "Select Option" then 
+         local args = {
+        [1] = "LobbyVoting",
+        [2] = "Override",
+        [3] = tostring(selectedMapOverride)
+    }
+    remoteFunction:InvokeServer(unpack(args))
+      end
+   end
+end)
+
+task.spawn(function()
+   while true do
+      wait(1)
+   if AutoStartGame and not workspace:FindFirstChild("Elevators") then 
+      if AutoStartGame == true then
+         local args = {
+        [1] = "LobbyVoting",
+        [2] = "Ready"
+    }
+    remoteEvent:FireServer(unpack(args))
+   end
+      end
+   end
+end)
+
+task.spawn(function()
+   while true do
+        wait(1)
+   if AutoVoteMap and selectedMapOverride ~= "Select Option" and not workspace:FindFirstChild("Elevators") then 
+      if AutoVoteMap == true then
+          local args = {
+        [1] = "LobbyVoting",
+        [2] = "Vote",
+        [3] = tostring(selectedMapOverride),
+        [4] = Vector3.new(-18.28144073486328, 4.984418869018555, 54.3515625)
+    }
+    remoteEvent:FireServer(unpack(args))
+   end
+      end
+   end
+end)
+
+task.spawn(function()
+    while true do
+        if pizzamacroenabled and not workspace:FindFirstChild("Elevators") then
+         print("enabled macro pizza!!!")
+
+            local guiPath = player:WaitForChild("PlayerGui")
+                :WaitForChild("ReactUniversalHotbar")
+                :WaitForChild("Frame")
+                :WaitForChild("values")
+                :WaitForChild("cash")
+                :WaitForChild("amount")
+
+            local function getCash()
+                local rawText = guiPath.Text or ""
+                local cleaned = rawText:gsub("[^%d%-]", "")
+                return tonumber(cleaned) or 0
+            end
+
+            local function waitForCash(minAmount)
+                while getCash() < minAmount do
+                    task.wait(1)
+                end
+            end
+
+            local function safeInvoke(args, cost)
+                waitForCash(cost)
+                local success, err = pcall(function()
+                    remoteFunction:InvokeServer(unpack(args))
+                end)
+                task.wait(1)
+            end
+
+            local sequence = {
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(4.668, 2.349, -37.184) }, "Shotgunner" }, cost = 300 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-1.643, 2.349, -36.870) }, "Shotgunner" }, cost = 300 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(4.487, 2.386, -34.154) }, "Shotgunner" }, cost = 300 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-1.185, 2.386, -33.905) }, "Shotgunner" }, cost = 300 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-0.616, 2.386, -30.504) }, "Shotgunner" }, cost = 300 },
+
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(7.143, 2.350, -39.064) }, "Trapper" }, cost = 500 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(7.671, 2.386, -35.299) }, "Trapper" }, cost = 500 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(-4.269, 2.349, -38.972) }, "Trapper" }, cost = 500 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(4.907, 2.386, -31.026) }, "Trapper" }, cost = 500 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(7.948, 2.386, -30.539) }, "Trapper" }, cost = 500 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(0.052, 2.386, -27.333) }, "Trapper" }, cost = 500 },
+                { args = { "Troops", "Pl\208\176ce", { Rotation = CFrame.new(), Position = Vector3.new(3.450, 2.386, -25.265) }, "Trapper" }, cost = 500 },
+            }
+
+            for _, step in ipairs(sequence) do
+                safeInvoke(step.args, step.cost)
+            end
+
+            local towerFolder = workspace:WaitForChild("Towers")
+            while true do
+                local towers = towerFolder:GetChildren()
+                for _, tower in ipairs(towers) do
+                    local args = {
+                        "Troops",
+                        "Upgrade",
+                        "Set",
+                        {
+                            Troop = tower,
+                            Path = 1
+                        }
+                    }
+                    pcall(function()
+                        remoteFunction:InvokeServer(unpack(args))
+                    end)
+                end
+                task.wait(1)
+            end
+
+            break -- Stop the outer loop, the macro has started
+        end
+        task.wait(1) -- Wait before checking again
+    end
+end)
+
+Rayfield:LoadConfiguration()
