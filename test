@@ -54,11 +54,19 @@ if not isfolder(hubFolder) then makefolder(hubFolder) end
 if not isfolder(macroFolder) then makefolder(macroFolder) end
 
 -- Deep copy helper
+-- Better deep copy that handles all Roblox types
 local function deepCopy(t)
-    if type(t) ~= "table" then return t end
+    if type(t) ~= "table" then 
+        return t 
+    end
+    
     local copy = {}
     for k, v in pairs(t) do
-        copy[k] = deepCopy(v)
+        if type(v) == "table" then
+            copy[k] = deepCopy(v)
+        else
+            copy[k] = v  -- This preserves Vector3, CFrame, etc. as references
+        end
     end
     return copy
 end
@@ -95,20 +103,27 @@ local function inspectValue(value, depth)
     end
 end
 
--- Serialize args, convert Troop Instance to TroopPosition Vector3
--- Serialize args, convert Troop Instance to TroopPosition Vector3 AND rotation
+local HttpService = game:GetService("HttpService")
+
 local function serializeArgs(args)
     local copy = deepCopy(args)
     
-    -- Handle Troops Place calls (args[3] contains Position as Vector3)
-    if copy[3] and type(copy[3]) == "table" and copy[3]["Position"] and typeof(copy[3]["Position"]) == "Vector3" then
-        local pos = copy[3]["Position"]
-        copy[3]["Position"] = {
-            X = pos.X,
-            Y = pos.Y,
-            Z = pos.Z
-        }
-        print("✅ PLACE: Converted Vector3 Position to table in serializeArgs")
+    -- Handle Troops Place calls (args[3] contains Position as Vector3 and possibly Rotation)
+    if copy[3] and type(copy[3]) == "table" then
+        -- Handle Position Vector3
+        if copy[3]["Position"] and typeof(copy[3]["Position"]) == "Vector3" then
+            local pos = copy[3]["Position"]
+            copy[3]["Position"] = {
+                X = pos.X,
+                Y = pos.Y,
+                Z = pos.Z
+            }
+            print("✅ PLACE: Converted Vector3 Position to table in serializeArgs")
+        end
+        
+        -- Always set identity rotation matrix (12 components: x,y,z + 9 rotation components)
+        copy[3]["Rotation"] = {0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1}
+        print("✅ PLACE: Set identity rotation matrix")
     end
     
     -- Check index [4] for Troops Upgrade calls (matching your hook code)
@@ -116,35 +131,22 @@ local function serializeArgs(args)
         if copy[4]["Troop"] and typeof(copy[4]["Troop"]) == "Instance" then
             local troop = copy[4]["Troop"]
             local pos
-            local rotation = CFrame.new(0, 0, 0) * CFrame.Angles(0, 0, 0)
+            local rotation = {0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1} -- Always identity rotation (12 components)
 
             if troop.PrimaryPart then
                 pos = troop.PrimaryPart.Position
-                -- Capture rotation from CFrame
-                local cf = troop.PrimaryPart.CFrame
-                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
             elseif troop:IsA("Model") then
                 local basePart = troop:FindFirstChildWhichIsA("BasePart")
                 if basePart then
                     pos = basePart.Position
-                    local cf = basePart.CFrame
-                    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                    rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
                 else
                     pos = Vector3.new()
-                    rotation = {1, 0, 0, 0, 1, 0, 0, 0, 1} -- Identity rotation
                 end
             elseif troop:IsA("BasePart") then
                 pos = troop.Position
-                local cf = troop.CFrame
-                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
             else
                 local cf = troop:GetModelCFrame()
                 pos = cf.Position
-                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
             end
 
             -- Convert Vector3 to serializable table
@@ -155,9 +157,7 @@ local function serializeArgs(args)
             }
             
             -- Add rotation data
-            if rotation then
-                copy[4]["TroopRotation"] = rotation
-            end
+            copy[4]["TroopRotation"] = rotation
             
             copy[4]["Troop"] = nil -- Remove the instance reference
             print("✅ UPGRADE: Converted Troop instance to TroopPosition + Rotation in serializeArgs")
@@ -169,34 +169,22 @@ local function serializeArgs(args)
         if copy[3]["Troop"] and typeof(copy[3]["Troop"]) == "Instance" then
             local troop = copy[3]["Troop"]
             local pos
-            local rotation = CFrame.new(0, 0, 0) * CFrame.Angles(0, 0, 0)
+            local rotation = {0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1} -- Always identity rotation (12 components)
 
             if troop.PrimaryPart then
                 pos = troop.PrimaryPart.Position
-                local cf = troop.PrimaryPart.CFrame
-                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
             elseif troop:IsA("Model") then
                 local basePart = troop:FindFirstChildWhichIsA("BasePart")
                 if basePart then
                     pos = basePart.Position
-                    local cf = basePart.CFrame
-                    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                    rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
                 else
                     pos = Vector3.new()
-                    rotation = {1, 0, 0, 0, 1, 0, 0, 0, 1}
                 end
             elseif troop:IsA("BasePart") then
                 pos = troop.Position
-                local cf = troop.CFrame
-                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
             else
                 local cf = troop:GetModelCFrame()
                 pos = cf.Position
-                local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()
-                rotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
             end
 
             -- Convert Vector3 to serializable table
@@ -207,9 +195,7 @@ local function serializeArgs(args)
             }
             
             -- Add rotation data
-            if rotation then
-                copy[3]["TroopRotation"] = rotation
-            end
+            copy[3]["TroopRotation"] = rotation
             
             copy[3]["Troop"] = nil
             print("✅ UPGRADE: Converted Troop instance to TroopPosition + Rotation in serializeArgs (index 3)")
@@ -219,8 +205,6 @@ local function serializeArgs(args)
     return copy
 end
 
--- Find troop in workspace.Towers by closest position
--- Find troop in workspace.Towers by closest position and optionally rotation
 local function findTroopByPosition(pos, rotationData, maxRetries)
     maxRetries = maxRetries or 3
     local closestTroop = nil
@@ -248,23 +232,20 @@ local function findTroopByPosition(pos, rotationData, maxRetries)
             if primaryPart then
                 local dist = (primaryPart.Position - pos).Magnitude
                 
-                -- Bonus: If rotation data exists, also check rotation similarity
                 local rotationMatch = true
                 if rotationData and type(rotationData) == "table" and #rotationData == 9 then
                     local currentCF = primaryPart.CFrame
-                    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = currentCF:GetComponents()
+                    local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = safeGetComponents(currentCF)
                     local currentRotation = {r00, r01, r02, r10, r11, r12, r20, r21, r22}
                     
-                    -- Check if rotations are similar (within tolerance)
                     local rotationDiff = 0
                     for i = 1, 9 do
                         rotationDiff = rotationDiff + math.abs(currentRotation[i] - rotationData[i])
                     end
-                    
-                    -- If rotation is too different, penalize this match
+                
                     if rotationDiff > 0.5 then
                         rotationMatch = false
-                        dist = dist + 2 -- Add penalty to distance
+                        dist = dist + 2 
                     end
                 end
                 
@@ -292,18 +273,31 @@ local function findTroopByPosition(pos, rotationData, maxRetries)
     return nil
 end
 
-
--- Deserialize args, replace TroopPosition with actual troop Instance
-
 local function deserializeArgs(args)
     local copy = deepCopy(args)
     
-    -- Handle Place calls - convert table Position back to Vector3
-    if copy[3] and type(copy[3]) == "table" and copy[3]["Position"] and type(copy[3]["Position"]) == "table" then
-        local posData = copy[3]["Position"]
-        if posData.X and posData.Y and posData.Z then
-            copy[3]["Position"] = Vector3.new(posData.X, posData.Y, posData.Z)
-            print("✅ PLACE: Converted table Position back to Vector3")
+    -- Handle Place calls - convert table Position back to Vector3 and Rotation back to proper type
+    if copy[3] and type(copy[3]) == "table" then
+        -- Handle Position
+        if copy[3]["Position"] and type(copy[3]["Position"]) == "table" then
+            local posData = copy[3]["Position"]
+            if posData.X and posData.Y and posData.Z then
+                copy[3]["Position"] = Vector3.new(posData.X, posData.Y, posData.Z)
+                print("✅ PLACE: Converted table Position back to Vector3")
+            end
+        end
+        
+        -- Handle Rotation
+        if copy[3]["Rotation"] then
+            if type(copy[3]["Rotation"]) == "table" and #copy[3]["Rotation"] == 12 then
+                -- Convert table back to CFrame
+                local components = copy[3]["Rotation"]
+                copy[3]["Rotation"] = CFrame.new(unpack(components))
+                print("✅ PLACE: Converted table Rotation back to CFrame")
+            elseif type(copy[3]["Rotation"]) == "number" then
+                -- Keep number rotation as-is
+                print("✅ PLACE: Kept number Rotation as-is")
+            end
         end
     end
     
@@ -369,11 +363,21 @@ local function deserializeArgs(args)
 end
 
 
+-- First, let's see what remotes exist
+print("=== AVAILABLE REMOTES ===")
+for _, remote in pairs(game.ReplicatedStorage:GetChildren()) do
+    if remote:IsA("RemoteFunction") then
+        print("RemoteFunction found:", remote.Name, remote)
+    end
+end
+print("=== END REMOTES ===")
+
+print("Using remote:", remoteFunction)
+
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
 
--- In your hook code, change this part:
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     if method == "InvokeServer" and self == remoteFunction then
@@ -413,13 +417,13 @@ mt.__namecall = newcclosure(function(self, ...)
                     }
                     table.insert(recordedCalls, {time = timestamp, args = copiedArgs})
                     print("✅ UPGRADE: Converted Vector3 to table")
-                    return oldNamecall(self, ...)
+                    return oldNamecall(self, unpack(args)) -- Use original args!
                 end
             end
 
-            -- For all other calls, use serializeArgs and print what it produces
+            -- For all other calls, serialize a COPY for recording but use original for the call
             print("📝 Using serializeArgs...")
-            local serializedArgs = serializeArgs(args)
+            local serializedArgs = serializeArgs(deepCopy(args)) -- Serialize a copy, not the original!
             
             print("--- BEFORE SERIALIZATION ---")
             for i, arg in ipairs(args) do
@@ -435,7 +439,7 @@ mt.__namecall = newcclosure(function(self, ...)
             print("💾 Recorded call")
         end
     end
-    return oldNamecall(self, ...)
+    return oldNamecall(self, ...) -- Use original args for the actual call
 end)
 
 -- Save macro to a file
@@ -707,12 +711,13 @@ local AutoLobbyToggle = GameTab:CreateToggle({
 })
 
 local AutoSkipToggle = GameTab:CreateToggle({
-   Name = "Auto skip",
-   CurrentValue = false,
-   Flag = "AutoSkip", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Value)
-      AutoSkipEnabled = Value
-   end,
+    Name = "Auto skip",
+    CurrentValue = false,
+    Flag = "AutoSkip",
+    Callback = function(Value)
+        AutoSkipEnabled = Value
+        print("Auto Skip is now", Value and "ENABLED" or "DISABLED")
+    end,
 })
 
 local AutoVoteToggle = GameTab:CreateToggle({
@@ -764,7 +769,7 @@ local CreateMacro = MacroTab:CreateInput({
    CurrentValue = "",
    PlaceholderText = "Input Name",
    RemoveTextAfterFocusLost = true,
-   Flag = "CreateMacroInput",
+  -- Flag = "CreateMacroInput",
    Callback = function(Text)
     if Text == "" then
             warn("Macro name is empty")
@@ -1037,10 +1042,10 @@ task.spawn(function()
    end
 end)
 
-task.spawn(function()
+--[[task.spawn(function()
     while true do
         task.wait(1)
-        local gameOverVisible = LocalPlayer.PlayerGui.ReactGameRewards.Frame.gameOver
+        local gameOverVisible = f
         if gameOverVisible.Visible == false then
             if AutoSkipEnabled then
                   local args = {[1] = "Voting",[2] = "Skip"}
@@ -1059,7 +1064,30 @@ task.spawn(function()
             end
          end
     end
+end)--]]
+
+LocalPlayer.PlayerGui.ReactGameRewards.Frame.gameOver:GetPropertyChangedSignal("Visible"):Connect(function()
+    print("check1")
+	if LocalPlayer.PlayerGui.ReactGameRewards.Frame.gameOver.Visible then
+        print("check 2")
+		-- Fires ONCE when UI becomes visible
+		if AutoRestartEnabled then
+            task.delay(2, function() -- 1 second delay before firing
+			 local args = {[1] = "Voting",[2] = "Skip"}
+                  game:GetService("ReplicatedStorage").RemoteFunction:InvokeServer(unpack(args))
+                  print("check 3")
+		end)
+    end
+
+		if AutoLobbyEnabled then
+            task.delay(2, function()
+			TeleportService:Teleport(3260590327, LocalPlayer)
+            end)
+		end
+	end
 end)
+
+
 
 task.spawn(function()
    while true do
@@ -1235,5 +1263,41 @@ task.spawn(function()
         task.wait(1) -- Wait before checking again
     end
 end)
+
+
+-- Adjust this path to your timer TextLabel
+local timerLabel = Gui:WaitForChild("ReactGameTopGameDisplay", 10).Frame.waveTimer.container.value -- or the exact name
+
+local skipFired = false
+
+local function parseTime(text)
+    local minutes, seconds = text:match("(%d+):(%d+)")
+    if minutes and seconds then
+        return tonumber(minutes) * 60 + tonumber(seconds)
+    end
+    return nil
+end
+
+timerLabel:GetPropertyChangedSignal("Text"):Connect(function()
+    if not AutoSkipEnabled then return end
+
+    local timeLeft = parseTime(timerLabel.Text)
+
+    if timeLeft and timeLeft <= 40 then
+        if skipFired then
+            print("Skip is on cooldown")
+            return
+        end
+        print("Time is under 40 seconds, sending skip...")
+        remoteFunction:InvokeServer("Voting", "Skip")
+        skipFired = true
+
+    elseif timeLeft and timeLeft > 40 then
+        skipFired = false
+    end
+end)
+
+
+
 
 Rayfield:LoadConfiguration()
