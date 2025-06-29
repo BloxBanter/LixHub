@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - v2",
+   Name = "LixHub - Anime Rangers X - v3",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
@@ -462,9 +462,9 @@ local function buildRewardsText()
 
                     -- Display with colon for standard stuff like XP/Gold, and × for items
                     if itemName:lower():match("exp") or itemName:lower():match("gold") then
-                        table.insert(lines, string.format("• %s: %s", itemName, amount))
+                        table.insert(lines, string.format("+ %s %s", amount, itemName))
                     else
-                        table.insert(lines, string.format("• %s ×%s", itemName, amount))
+                        table.insert(lines, string.format("+ %s %s", amount, itemName))
                     end
                 end
             end
@@ -543,7 +543,7 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                         inline = true
                     },
                     {
-                        name = shouldPing and "🎁 EPIC REWARDS" or "🏆 Rewards",
+                        name = shouldPing and "🏆 Rewards" or "🏆 Rewards",
                         value = rewardsText,
                         inline = false
                     },
@@ -551,11 +551,6 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                         name = "🌟 Units Obtained",
                         value = table.concat(foundUnits, ", "),
                         inline = false
-                    } or nil,
-                    matchedStage and {
-                        name = "📍 Stage Info",
-                        value = string.format("%s - %s", matchedStage.world, matchedStage.stage),
-                        inline = true
                     } or nil,
                     {
                         name = "📈 Script Version",
