@@ -537,8 +537,44 @@ local function getTierValue(name)
 end
 
 
-
 local function buildRewardsText()
+    local rewardsRoot = player:FindFirstChild("RewardsShow")
+    if not rewardsRoot then
+        return "_No rewards found_", {}
+    end
+
+    local lines = {}
+    local detectedRewards = {} -- Track what rewards we found
+
+    for _, folder in ipairs(rewardsRoot:GetChildren()) do
+        if folder:IsA("Folder") then
+            for _, val in ipairs(folder:GetChildren()) do
+                if val:IsA("ValueBase") then
+                    local itemName = val.Name
+                    local amount = tostring(val.Value)
+                    
+                    -- Store the reward for unit checking
+                    detectedRewards[itemName] = amount
+
+                    -- Display with colon for standard stuff like XP/Gold, and × for items
+                    if itemName:lower():match("exp") or itemName:lower():match("gold") then
+                        table.insert(lines, string.format("• %s: %s", itemName, amount))
+                    else
+                        table.insert(lines, string.format("• %s ×%s", itemName, amount))
+                    end
+                end
+            end
+        end
+    end
+
+    if #lines == 0 then
+        return "_No reward values found_", {}
+    end
+
+    return table.concat(lines, "\n"), detectedRewards
+end
+
+--[[local function buildRewardsText()
     local rewardsRoot = player:FindFirstChild("RewardsShow")
     if not rewardsRoot then
         return "_No rewards found_"
@@ -569,7 +605,7 @@ local function buildRewardsText()
     end
 
     return table.concat(lines, "\n")
-end
+end--]]
 
 local function isInLobby()
     return workspace:FindFirstChild("Lobby") ~= nil
@@ -1950,3 +1986,6 @@ if pendingChallengeReturn then
 end)
 
 Rayfield:LoadConfiguration()
+
+
+
