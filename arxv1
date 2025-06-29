@@ -420,7 +420,7 @@ local function findMatchingStageAndCheckUnits(detectedRewards)
                                     -- Check for units in this matched stage
                                     for rewardName, _ in pairs(detectedRewards) do
                                         local rewardInfo = possibleRewards[rewardName]
-                                        if rewardInfo and rewardInfo.Type == "Item" then
+                                        if rewardInfo and rewardInfo.Type == "Unit" then
                                             table.insert(foundUnits, rewardName)
                                         end
                                     end
@@ -534,7 +534,7 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                 fields = {
                     {
                         name = "👤 Player",
-                        value = player.Name.." ["..plrlevel.."]",
+                        value = "||" .. player.Name .. " [" .. plrlevel .. "]" .. "||",
                         inline = true
                     },
                     {
