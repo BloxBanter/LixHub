@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - v1",
+   Name = "LixHub - Anime Rangers X - v2",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
@@ -453,8 +453,8 @@ local function buildRewardsText()
     for _, folder in ipairs(rewardsRoot:GetChildren()) do
         if folder:IsA("Folder") then
             for _, val in ipairs(folder:GetChildren()) do
-                if val:IsA("ValueBase") then
-                    local itemName = val.Name
+                if val:IsA("NumberValue") then
+                    local itemName = val.Parent.Name
                     local amount = tostring(val.Value)
                     
                     -- Store the reward for unit checking
@@ -2115,6 +2115,3 @@ if pendingChallengeReturn then
 end)
 
 Rayfield:LoadConfiguration()
-
-
-
