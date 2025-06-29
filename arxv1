@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - v3",
+   Name = "LixHub - Anime Rangers X - v4",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
@@ -13,7 +13,7 @@ local Window = Rayfield:CreateWindow({
    DisableBuildWarnings = false, -- Prevents Rayfield from warning when the script has a version mismatch with the interface
 
    ConfigurationSaving = {
-      Enabled = false,
+      Enabled = true,
       FolderName = "LixHub", -- Create a custom folder for your hub/game
       FileName = "Anime Rangers X"
    },
@@ -1606,7 +1606,7 @@ local RangerStageDropdown = JoinerTab:CreateDropdown({
    Name = "Select Ranger Stages To Join",
    Options = {},
    CurrentOption = {},
-   MultipleOptions = true,
+   MultipleOptions = false,
    Flag = "RangerStageSelector",
    Callback = function(Options)
       selectedRawStages = {} -- Clear the array first
@@ -2110,3 +2110,6 @@ if pendingChallengeReturn then
 end)
 
 Rayfield:LoadConfiguration()
+
+
+
