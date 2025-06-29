@@ -264,7 +264,7 @@ local function notify(title, content, duration)
     })
 end
 
-local function sendWebhook(messageType, rewards, clearTime, matchResult)
+--[[local function sendWebhook(messageType, rewards, clearTime, matchResult)
     if not ValidWebhook then return end
     local data
 
@@ -343,6 +343,133 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                 timestamp = timestamp
             }}
         }
+
+    else
+        return -- Unrecognized message type
+    end
+
+    -- Encode & send webhook
+    local payload = HttpService:JSONEncode(data)
+    local requestFunc = (syn and syn.request) or (http and http.request) or request
+    if requestFunc then
+        local success, result = pcall(function()
+            return requestFunc({
+                Url = ValidWebhook,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = payload
+            })
+        end)
+        if not success then
+            warn("Webhook failed to send: " .. tostring(result))
+        end
+    else
+        warn("No compatible HTTP request method found.")
+    end
+end--]]
+
+local function sendWebhook(messageType, rewards, clearTime, matchResult)
+    if not ValidWebhook then return end
+    local data
+
+    -- TEST WEBHOOK
+    if messageType == "test" then
+        data = {
+            username = "LixHub Bot",
+            embeds = {{
+                title = "📢 LixHub Notification",
+                description = "Test webhook sent successfully",
+                color = 0x5865F2,
+                footer = {
+                    text = "LixHub Auto Logger"
+                },
+                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            }}
+        }
+
+    -- STAGE COMPLETION WEBHOOK
+    elseif messageType == "stage" then
+        local RewardsUI = player:WaitForChild("PlayerGui"):WaitForChild("HUD"):WaitForChild("InGame"):WaitForChild("Main"):WaitForChild("GameInfo")
+        local RewardsFolder = player:FindFirstChild("RewardsShow")
+
+        local stageName = RewardsUI and RewardsUI:FindFirstChild("Stage") and RewardsUI.Stage.Label.Text or "Unknown Stage"
+        local gameMode = RewardsUI and RewardsUI:FindFirstChild("Gamemode") and RewardsUI.Gamemode.Label.Text or "Unknown Time"
+        local isWin = matchResult == "Victory"
+        local plrlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value or ""
+
+        -- Build reward string and get detected rewards
+        local rewardsText, detectedRewards = buildRewardsText()
+        
+        -- Check for units by searching through all stage modules
+        local foundUnits, matchedStage = findMatchingStageAndCheckUnits(detectedRewards)
+        local shouldPing = #foundUnits > 0
+        local pingText = shouldPing and string.format("<@%s> 🎉 **SECRET UNIT OBTAINED!** 🎉", DISCORD_USER_ID) or ""
+
+        local stageResult = stageName .. " (" .. gameMode .. ")" .. " - " .. matchResult
+        local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+
+        -- Build description with ping if unit found
+        local description = stageResult
+        if shouldPing then
+            description = pingText .. "\n" .. stageResult
+        end
+
+        data = {
+            username = "LixHub Bot",
+            content = shouldPing and pingText or nil, -- This ensures the ping works
+            embeds = {{
+                title = shouldPing and "🌟 UNIT DROP! 🌟" or "🎯 Stage Finished!",
+                description = description,
+                color = shouldPing and 0xFFD700 or (isWin and 0x57F287 or 0xED4245), -- Gold for units, green for win, red for loss
+                fields = {
+                    {
+                        name = "👤 Player",
+                        value = player.Name.." ["..plrlevel.."]",
+                        inline = true
+                    },
+                    {
+                        name = isWin and ("✅ Won in:") or ("❌ Lost after:"),
+                        value = clearTime,
+                        inline = true
+                    },
+                    {
+                        name = shouldPing and "🎁 EPIC REWARDS" or "🏆 Rewards",
+                        value = rewardsText,
+                        inline = false
+                    },
+                    shouldPing and {
+                        name = "🌟 Units Obtained",
+                        value = table.concat(foundUnits, ", "),
+                        inline = false
+                    } or nil,
+                    matchedStage and {
+                        name = "📍 Stage Info",
+                        value = string.format("%s - %s", matchedStage.world, matchedStage.stage),
+                        inline = true
+                    } or nil,
+                    {
+                        name = "📈 Script Version",
+                        value = "v1.1.0", -- Updated version
+                        inline = true
+                    }
+                },
+                footer = {
+                    text = "discord.gg/lixhub"
+                },
+                timestamp = timestamp
+            }}
+        }
+
+        -- Remove nil fields
+        local filteredFields = {}
+        for _, field in ipairs(data.embeds[1].fields) do
+            if field then
+                table.insert(filteredFields, field)
+            end
+        end
+        data.embeds[1].fields = filteredFields
 
     else
         return -- Unrecognized message type
