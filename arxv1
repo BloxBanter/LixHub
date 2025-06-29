@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - v5",
+   Name = "LixHub - Anime Rangers X - v6",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
@@ -2034,7 +2034,12 @@ GameEndRemote.OnClientEvent:Connect(function()
 
     -- 0.25 s to let rewards folder fill
     task.wait(0.25)
-
+if player.PlayerGui:FindFirstChild("GameEndedAnimationUI") then
+        player.PlayerGui:FindFirstChild("GameEndedAnimationUI"):Destroy()
+    end
+    if player.PlayerGui:FindFirstChild("RewardsUI").Enabled == true then
+        player.PlayerGui:FindFirstChild("RewardsUI").Enabled = false
+    end
     -- ⏱️ clear‑time calculation
     local clearTimeStr = "Unknown"
     if stageStartTime then
