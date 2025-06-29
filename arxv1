@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - v7",
+   Name = "LixHub - Anime Rangers X - v8",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
@@ -75,6 +75,9 @@ local autoChallengeEnabled
 local autoPortalEnabled
 local portalUsed = false
 local isAutoJoining
+local autoClaimBP
+local AutoClaimQuests
+local AutoClaimMilestones
 local chapters = {"Chapter1", "Chapter2", "Chapter3", "Chapter4", "Chapter5", "Chapter6", "Chapter7", "Chapter8", "Chapter9", "Chapter10"}
 local difficulties = {"Normal", "Hard", "Nightmare"}
 local selectedWorld, selectedChapter, selectedDifficulty
@@ -1398,7 +1401,7 @@ local Toggle = LobbyTab:CreateToggle({
    CurrentValue = false,
    Flag = "AutoClaimBattlepass",
    Callback = function(Value)
-
+        autoClaimBP = Value
    end,
 })
 
@@ -1407,7 +1410,7 @@ local Toggle = LobbyTab:CreateToggle({
    CurrentValue = false,
    Flag = "AutoClaimQuests",
    Callback = function(Value)
-
+        AutoClaimQuests = Value
    end,
 })
 
@@ -1416,9 +1419,30 @@ local Toggle = LobbyTab:CreateToggle({
    CurrentValue = false,
    Flag = "AutoClaimMilestones",
    Callback = function(Value)
-
+        AutoClaimMilestones = Value
    end,
 })
+
+task.spawn(function()
+    while true do
+        task.wait(5)
+        if isInLobby then
+        if autoClaimBP then
+        local args = {"Claim All"}
+        ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Events"):WaitForChild("ClaimBp"):FireServer(unpack(args))
+        end
+        if AutoClaimQuests then
+        local args = {"ClaimAll"}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("QuestEvent"):FireServer(unpack(args))
+        end
+        if AutoClaimMilestones then
+        local playerlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value
+        local args = {tonumber(playerlevel)}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("LevelMilestone"):FireServer(unpack(args))
+        end
+        end
+    end
+end)
 
 local StatsTabSection1 = LobbyTab:CreateSection("Stats")
 
