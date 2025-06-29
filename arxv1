@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X",
+   Name = "LixHub - Anime Rangers X - v1",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
@@ -370,6 +370,114 @@ end
     end
 end--]]
 
+local function findMatchingStageAndCheckUnits(detectedRewards)
+    local foundUnits = {}
+    local matchedStage = nil
+    
+    -- Get all ModuleScripts in the stages folder
+    for _, moduleScript in ipairs(STAGE_MODULES_FOLDER:GetChildren()) do
+        if moduleScript:IsA("ModuleScript") then
+            local success, stageData = pcall(function()
+                return require(moduleScript)
+            end)
+            
+            if success and stageData then
+                -- Check each world in the module
+                for worldName, worldData in pairs(stageData) do
+                    if type(worldData) == "table" then
+                        -- Check each stage in the world
+                        for stageName, stage in pairs(worldData) do
+                            if type(stage) == "table" and stage.Items then
+                                -- Create lookup table for this stage's possible rewards
+                                local possibleRewards = {}
+                                for _, item in ipairs(stage.Items) do
+                                    possibleRewards[item.Name] = item
+                                end
+                                
+                                -- Check if our detected rewards match this stage
+                                local matches = 0
+                                local totalDetected = 0
+                                
+                                for rewardName, _ in pairs(detectedRewards) do
+                                    -- Skip EXP/Gold as they're common to all stages
+                                    if not (rewardName:lower():match("exp") or rewardName:lower():match("gold")) then
+                                        totalDetected = totalDetected + 1
+                                        if possibleRewards[rewardName] then
+                                            matches = matches + 1
+                                        end
+                                    end
+                                end
+                                
+                                -- If we have matches and they represent a good portion of our rewards
+                                if matches > 0 and (totalDetected == 0 or matches / totalDetected >= 0.5) then
+                                    matchedStage = {
+                                        module = moduleScript.Name,
+                                        world = worldName,
+                                        stage = stageName,
+                                        data = stage
+                                    }
+                                    
+                                    -- Check for units in this matched stage
+                                    for rewardName, _ in pairs(detectedRewards) do
+                                        local rewardInfo = possibleRewards[rewardName]
+                                        if rewardInfo and rewardInfo.Type == "Item" then
+                                            table.insert(foundUnits, rewardName)
+                                        end
+                                    end
+                                    
+                                    -- If we found units, we can return early
+                                    if #foundUnits > 0 then
+                                        return foundUnits, matchedStage
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return foundUnits, matchedStage
+end
+
+local function buildRewardsText()
+    local rewardsRoot = player:FindFirstChild("RewardsShow")
+    if not rewardsRoot then
+        return "_No rewards found_", {}
+    end
+
+    local lines = {}
+    local detectedRewards = {} -- Track what rewards we found
+
+    for _, folder in ipairs(rewardsRoot:GetChildren()) do
+        if folder:IsA("Folder") then
+            for _, val in ipairs(folder:GetChildren()) do
+                if val:IsA("ValueBase") then
+                    local itemName = val.Name
+                    local amount = tostring(val.Value)
+                    
+                    -- Store the reward for unit checking
+                    detectedRewards[itemName] = amount
+
+                    -- Display with colon for standard stuff like XP/Gold, and × for items
+                    if itemName:lower():match("exp") or itemName:lower():match("gold") then
+                        table.insert(lines, string.format("• %s: %s", itemName, amount))
+                    else
+                        table.insert(lines, string.format("• %s ×%s", itemName, amount))
+                    end
+                end
+            end
+        end
+    end
+
+    if #lines == 0 then
+        return "_No reward values found_", {}
+    end
+
+    return table.concat(lines, "\n"), detectedRewards
+end
+
 local function sendWebhook(messageType, rewards, clearTime, matchResult)
     if not ValidWebhook then return end
     local data
@@ -497,77 +605,6 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
     end
 end
 
-local function findMatchingStageAndCheckUnits(detectedRewards)
-    local foundUnits = {}
-    local matchedStage = nil
-    
-    -- Get all ModuleScripts in the stages folder
-    for _, moduleScript in ipairs(STAGE_MODULES_FOLDER:GetChildren()) do
-        if moduleScript:IsA("ModuleScript") then
-            local success, stageData = pcall(function()
-                return require(moduleScript)
-            end)
-            
-            if success and stageData then
-                -- Check each world in the module
-                for worldName, worldData in pairs(stageData) do
-                    if type(worldData) == "table" then
-                        -- Check each stage in the world
-                        for stageName, stage in pairs(worldData) do
-                            if type(stage) == "table" and stage.Items then
-                                -- Create lookup table for this stage's possible rewards
-                                local possibleRewards = {}
-                                for _, item in ipairs(stage.Items) do
-                                    possibleRewards[item.Name] = item
-                                end
-                                
-                                -- Check if our detected rewards match this stage
-                                local matches = 0
-                                local totalDetected = 0
-                                
-                                for rewardName, _ in pairs(detectedRewards) do
-                                    -- Skip EXP/Gold as they're common to all stages
-                                    if not (rewardName:lower():match("exp") or rewardName:lower():match("gold")) then
-                                        totalDetected = totalDetected + 1
-                                        if possibleRewards[rewardName] then
-                                            matches = matches + 1
-                                        end
-                                    end
-                                end
-                                
-                                -- If we have matches and they represent a good portion of our rewards
-                                if matches > 0 and (totalDetected == 0 or matches / totalDetected >= 0.5) then
-                                    matchedStage = {
-                                        module = moduleScript.Name,
-                                        world = worldName,
-                                        stage = stageName,
-                                        data = stage
-                                    }
-                                    
-                                    -- Check for units in this matched stage
-                                    for rewardName, _ in pairs(detectedRewards) do
-                                        local rewardInfo = possibleRewards[rewardName]
-                                        if rewardInfo and rewardInfo.Type == "Unit" then
-                                            table.insert(foundUnits, rewardName)
-                                        end
-                                    end
-                                    
-                                    -- If we found units, we can return early
-                                    if #foundUnits > 0 then
-                                        return foundUnits, matchedStage
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
-    return foundUnits, matchedStage
-end
-
 local function countPartsOnPath(folder, pathFolder)
     local count = 0
     for _, part in ipairs(folder:GetChildren()) do
@@ -664,42 +701,7 @@ local function getTierValue(name)
 end
 
 
-local function buildRewardsText()
-    local rewardsRoot = player:FindFirstChild("RewardsShow")
-    if not rewardsRoot then
-        return "_No rewards found_", {}
-    end
 
-    local lines = {}
-    local detectedRewards = {} -- Track what rewards we found
-
-    for _, folder in ipairs(rewardsRoot:GetChildren()) do
-        if folder:IsA("Folder") then
-            for _, val in ipairs(folder:GetChildren()) do
-                if val:IsA("ValueBase") then
-                    local itemName = val.Name
-                    local amount = tostring(val.Value)
-                    
-                    -- Store the reward for unit checking
-                    detectedRewards[itemName] = amount
-
-                    -- Display with colon for standard stuff like XP/Gold, and × for items
-                    if itemName:lower():match("exp") or itemName:lower():match("gold") then
-                        table.insert(lines, string.format("• %s: %s", itemName, amount))
-                    else
-                        table.insert(lines, string.format("• %s ×%s", itemName, amount))
-                    end
-                end
-            end
-        end
-    end
-
-    if #lines == 0 then
-        return "_No reward values found_", {}
-    end
-
-    return table.concat(lines, "\n"), detectedRewards
-end
 
 --[[local function buildRewardsText()
     local rewardsRoot = player:FindFirstChild("RewardsShow")
