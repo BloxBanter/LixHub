@@ -754,16 +754,17 @@ end
 local function autoPurchaseItems()
     if not AutoPurchaseMerchant then return end
     
-    if not MerchantPurchaseTable or #MerchantPurchaseTable == 0 then return end
+    if not MerchantPurchaseTable or #MerchantPurchaseTable == 0 then print("no merchanttable or its 0") return end
     
      local playerData = ReplicatedStorage.Player_Data[player.Name]
-    if not playerData then return end
+    if not playerData then return print("no playerdata folder") end
     
     local merchantFolder = playerData:FindFirstChild("Merchant")
-    if not merchantFolder then return end
+    if not merchantFolder then print("no merchant folder") return end
     
     for _, selectedItem in pairs(MerchantPurchaseTable) do
         local itemFolder = merchantFolder:FindFirstChild(selectedItem)
+        print(itemFolder)
         if itemFolder then
             -- Check if player can afford the item
             if canAffordItem(itemFolder) then
@@ -1453,11 +1454,11 @@ local MerchantSelectorDropdown = LobbyTab:CreateDropdown({
 })
 
 task.spawn(function()
-    while AutoPurchaseMerchant and #MerchantPurchaseTable > 0 do
-        if isInLobby() then
-        autoPurchaseItems()
-        task.wait(1)
+    while true do
+        if AutoPurchaseMerchant and #MerchantPurchaseTable > 0 and isInLobby() then
+            autoPurchaseItems()
         end
+        task.wait(1)
     end
 end)
 
