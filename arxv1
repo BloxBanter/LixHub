@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - v8",
+   Name = "LixHub - Anime Rangers X - v10",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
@@ -78,6 +78,8 @@ local isAutoJoining
 local autoClaimBP
 local AutoClaimQuests
 local AutoClaimMilestones
+local MerchantPurchaseTable = {}
+local AutoPurchaseMerchant
 local chapters = {"Chapter1", "Chapter2", "Chapter3", "Chapter4", "Chapter5", "Chapter6", "Chapter7", "Chapter8", "Chapter9", "Chapter10"}
 local difficulties = {"Normal", "Hard", "Nightmare"}
 local selectedWorld, selectedChapter, selectedDifficulty
@@ -1328,9 +1330,15 @@ task.spawn(function()
     end
 end)
 
+local LogTab = Window:CreateTab("Update Log", "scroll") -- Title, Image
+
+local LogTabSection = LogTab:CreateSection("V10")
+
+local LogTabDivider = LogTab:CreateDivider()
+
+local Label = LogTab:CreateLabel("+ Auto Claim Battlepass, + Auto Claim Quests, +Auto Claim Milestones") -- Title, Icon, Color, IgnoreTheme
+
 local LobbyTab = Window:CreateTab("Lobby", "tv") -- Title, Image
-
-
 
 local Button = LobbyTab:CreateButton({
     Name = "Redeem all valid codes",
@@ -1381,18 +1389,19 @@ local Toggle = LobbyTab:CreateToggle({
    CurrentValue = false,
    Flag = "AutoPurchaseMerchant",
    Callback = function(Value)
-
+       AutoPurchaseMerchant = Value
    end,
 })
 
 local MerchantSelectorDropdown = LobbyTab:CreateDropdown({
    Name = "Select Items To Purchase",
-   Options = {"curse token","reroll","dr.megga punk"},
+   Options = {"meggapunk"},
    CurrentOption = {},
    MultipleOptions = true,
    Flag = "MerchantPurchaseSelector",
    Callback = function(Options)
-     
+       print("Selected items for auto purchase:", table.concat(Options, ", "))
+       table.insert(MerchantPurchaseTable, Options[1])
    end,
 })
 
@@ -1425,7 +1434,7 @@ local Toggle = LobbyTab:CreateToggle({
 
 task.spawn(function()
     while true do
-        task.wait(5)
+        task.wait(3)
         if isInLobby then
         if autoClaimBP then
         local args = {"Claim All"}
