@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - v8",
+   Name = "LixHub - Anime Rangers X",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
-   LoadingTitle = "Loading for Anime Rangers X",
+   LoadingTitle = "Loading for Anime Rangers X - "..game.ReplicatedStorage.Player_Data[game.Players.LocalPlayer].Data.LoginVersion.Value,
    LoadingSubtitle = "by Lix",
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
 
@@ -447,6 +447,25 @@ local function findMatchingStageAndCheckUnits(detectedRewards)
     return foundUnits, matchedStage
 end
 
+local function getTotalItemAmount(itemName)
+    -- Get player data
+    local playerData = ReplicatedStorage:FindFirstChild("Player_Data")[player.Name]
+    if not playerData then return nil end
+    
+    local itemsFolder = playerData:FindFirstChild("Items")
+    if not itemsFolder then return nil end
+    
+    -- Look for the item folder
+    local itemFolder = itemsFolder:FindFirstChild(itemName)
+    if not itemFolder then return nil end
+    
+    -- Get the Amount value
+    local amountValue = itemFolder:FindFirstChild("Amount")
+    if not amountValue then return nil end
+    
+    return tostring(amountValue.Value)
+end
+
 local function buildRewardsText()
     local rewardsRoot = player:FindFirstChild("RewardsShow")
     if not rewardsRoot then
@@ -466,11 +485,15 @@ local function buildRewardsText()
                     -- Store the reward for unit checking
                     detectedRewards[itemName] = amount
 
+                    -- Get total amount from player data
+                    local totalAmount = getTotalItemAmount(itemName)
+                    local totalText = totalAmount and string.format(" (%s total)", totalAmount) or ""
+
                     -- Display with colon for standard stuff like XP/Gold, and × for items
                     if itemName:lower():match("exp") or itemName:lower():match("gold") then
-                        table.insert(lines, string.format("+ %s %s", amount, itemName))
+                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
                     else
-                        table.insert(lines, string.format("+ %s %s", amount, itemName))
+                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
                     end
                 end
             end
