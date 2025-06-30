@@ -44,6 +44,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameEndRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Client"):WaitForChild("UI"):WaitForChild("GameEndedUI")
 local CodeRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Lobby"):WaitForChild("Code")
 local StartGameRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("OnGame"):WaitForChild("Voting"):WaitForChild("VotePlaying")
+local merchantRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("Merchant")
 local rangerCooldownFolder = ReplicatedStorage:WaitForChild("Player_Data")[player.Name]:WaitForChild("RangerStage")
 --local codeUrl = "https://raw.githubusercontent.com/BloxBanter/LixHub/refs/heads/main/arx-codelist" -- Replace this
  local PlayEvent = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
@@ -774,7 +775,7 @@ local function autoPurchaseItems()
                 -- Only purchase if there's stock available
                 if availableQuantity > 0 then
                     purchaseItem(selectedItem, availableQuantity)
-                    notify("Auto Purchase Merchant","Purchased "..selectedItem)
+                    notify("Auto Purchase Merchant","Purchased: "..availableQuantity.."x "..selectedItem)
                     -- Add delay to prevent spam
                     wait(0.5)
                 end
