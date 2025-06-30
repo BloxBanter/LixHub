@@ -770,10 +770,12 @@ local function autoPurchaseItems()
             -- Check if player can afford the item
             if canAffordItem(itemFolder) then
                 local quantityValue = itemFolder:FindFirstChild("Quantity")
+                local currentquantityValue = itemFolder:FindFirstChild("BuyAmount")
                 local availableQuantity = quantityValue and quantityValue.Value or 1
-                
+                local currentQuantity = currentquantityValue and currentquantityValue.Value or 0
+
                 -- Only purchase if there's stock available
-                if availableQuantity > 0 then
+                if currentQuantity <= 0 then
                     purchaseItem(selectedItem, availableQuantity)
                     notify("Auto Purchase Merchant","Purchased: "..availableQuantity.."x "..selectedItem)
                     -- Add delay to prevent spam
@@ -1444,7 +1446,7 @@ local Toggle = LobbyTab:CreateToggle({
 
 local MerchantSelectorDropdown = LobbyTab:CreateDropdown({
    Name = "Select Items To Purchase",
-   Options = {"Dr. Megga Punk","Cursed Finger","Perfect Stats Key","Stats Key","Trait Reroll"},
+   Options = {"Dr. Megga Punk","Cursed Finger","Perfect Stats Key","Stats Key","Trait Reroll","Ranger Crystal"},
    CurrentOption = {},
    MultipleOptions = true,
    Flag = "MerchantPurchaseSelector",
