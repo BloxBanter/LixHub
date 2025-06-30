@@ -2153,10 +2153,17 @@ if player.PlayerGui:FindFirstChild("GameEndedAnimationUI") then
     if player.PlayerGui:FindFirstChild("RewardsUI").Enabled == true then
         player.PlayerGui:FindFirstChild("RewardsUI").Enabled = false
     end
-     if player.PlayerGui:FindFirstChild("Visual") then
+    if player.PlayerGui:FindFirstChild("Visual") then
         player.PlayerGui:FindFirstChild("Visual"):Destroy()
     end
-    -- ⏱️ clear‑time calculation
+    if player:FindFirstChild("SavedToTeleport") then
+        player:FindFirstChild("SavedToTeleport"):Destroy()
+    end
+    for _, child in pairs(ReplicatedStorage.Player_Data[player.Name].RangerStage:GetChildren()) do
+        child:Destroy()
+    end
+    
+
     local clearTimeStr = "Unknown"
     if stageStartTime then
         local dt = math.floor(tick() - stageStartTime)
