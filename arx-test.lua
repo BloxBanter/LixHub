@@ -144,7 +144,7 @@ local function fetchStoryData()
                             })
 
                              worldDisplayNameMap[storyTable.Ani_Names] = storyTable.Name
-                            print("Found Series: " .. tostring(storyTable.Name) .. " -> " .. tostring(storyTable.Ani_Names))
+                            --print("Found Series: " .. tostring(storyTable.Name) .. " -> " .. tostring(storyTable.Ani_Names))
                         end
                     end
                 end
@@ -175,7 +175,7 @@ local function fetchRangerStageData(storyData)
      local worldDisplayNames = {}
     for _, story in ipairs(storyData) do
         worldDisplayNames[story.ModuleName] = story.SeriesName
-         print("SHUTMapping:", story.ModuleName, "->", story.SeriesName)
+         --print("SHUTMapping:", story.ModuleName, "->", story.SeriesName)
     end
     
     -- Storage for ranger stages by world
@@ -195,7 +195,7 @@ local function fetchRangerStageData(storyData)
                             if typeof(chapterData) == "table" and chapterData.Wave then
                                 if string.find(chapterData.Wave, "RangerStage") then
                                     local worldName = chapterData.World or "UnknownWorld"
-                                    print("📝 Found worldName:", worldName)
+                                   -- print("📝 Found worldName:", worldName)
                                     worldStages[worldName] = worldStages[worldName] or {}
                                          local displayWorldName = worldDisplayNames[worldName] or worldName -- fallback to internal if not found
                                     table.insert(worldStages[worldName], {
@@ -241,10 +241,10 @@ local function fetchRangerStageData(storyData)
     -- Build final ranger stages list
     for _, worldInfo in ipairs(worldOrder) do
         local worldName = worldInfo.World
-        print("==== World: " .. worldName .. " ====")
+        --print("==== World: " .. worldName .. " ====")
 
         for _, stage in ipairs(worldInfo.Stages) do
-            print("Found Ranger Stage:", stage.Wave)
+            --print("Found Ranger Stage:", stage.Wave)
             table.insert(rangerStages, {
                 RawName = stage.Wave,
                 DisplayName = stage.DisplayName,
@@ -755,17 +755,16 @@ end
 local function autoPurchaseItems()
     if not AutoPurchaseMerchant then return end
     
-    if not MerchantPurchaseTable or #MerchantPurchaseTable == 0 then print("no merchanttable or its 0") return end
+    if not MerchantPurchaseTable or #MerchantPurchaseTable == 0 then  return end
     
      local playerData = ReplicatedStorage.Player_Data[player.Name]
-    if not playerData then return print("no playerdata folder") end
+    if not playerData then return  end
     
     local merchantFolder = playerData:FindFirstChild("Merchant")
-    if not merchantFolder then print("no merchant folder") return end
+    if not merchantFolder then return end
     
     for _, selectedItem in pairs(MerchantPurchaseTable) do
         local itemFolder = merchantFolder:FindFirstChild(selectedItem)
-        print(itemFolder)
         if itemFolder then
             -- Check if player can afford the item
             if canAffordItem(itemFolder) then
@@ -820,7 +819,6 @@ local function autoJoinRangerStage(stageName)
         return
     end
     
-    print("🌍 Extracted world:", world)
 
     -- 4. Change-World
     PlayRoomEvent:FireServer("Change-World", { World = world })
@@ -1095,7 +1093,6 @@ end
 
 if not storedChallengeSerial then
     storedChallengeSerial = getCurrentChallengeSerial()
-    print("🔍 Initial challenge serial:", storedChallengeSerial or "None")
 end
 
 local function getUnitNameFromSlot(slotNumber)
@@ -1182,14 +1179,14 @@ local function upgradeUnit(unitName)
 end
 
 local function leftToRightUpgrade()
-    print("🔄 Starting upgrade cycle from slot " .. currentUpgradeSlot)
+   -- print("🔄 Starting upgrade cycle from slot " .. currentUpgradeSlot)
     
     while autoUpgradeEnabled and gameRunning do
         local unitName = getUnitNameFromSlot(currentUpgradeSlot)
         local unitNameStr = unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) or "nil"
         local maxLevel = unitLevelCaps[currentUpgradeSlot] or 9
         
-        print("🔍 Checking slot " .. currentUpgradeSlot .. " unit:", unitNameStr)
+       -- print("🔍 Checking slot " .. currentUpgradeSlot .. " unit:", unitNameStr)
 
         if unitName and unitNameStr ~= "" and unitNameStr ~= "nil" then
             local currentLevel = getCurrentUpgradeLevel(unitNameStr)
@@ -1201,42 +1198,42 @@ local function leftToRightUpgrade()
                 -- If we've checked all slots, restart from slot 1
                 if currentUpgradeSlot > 6 then
                     currentUpgradeSlot = 1
-                    print("🔄 All slots checked, restarting from slot 1")
+                   -- print("🔄 All slots checked, restarting from slot 1")
                 end
             else
                 -- Try to upgrade current unit - STRICT ORDER: Wait for money!
                 local currentMoney = getCurrentMoney()
                 local upgradeCost = getUpgradeCost(unitNameStr)
                 
-                print("📊 Unit '" .. unitNameStr .. "' - Level:", tostring(currentLevel), "Max:", maxLevel, "Cost:", upgradeCost, "Money:", currentMoney)
+               -- print("📊 Unit '" .. unitNameStr .. "' - Level:", tostring(currentLevel), "Max:", maxLevel, "Cost:", upgradeCost, "Money:", currentMoney)
 
                 if currentMoney >= upgradeCost then
-                    print("🔧 Upgrading unit:", unitNameStr)
+                   -- print("🔧 Upgrading unit:", unitNameStr)
                     if upgradeUnit(unitNameStr) then
                         task.wait(UPGRADE_COOLDOWN)
                     else
-                        print("❌ Failed to upgrade, will retry")
+                      --  print("❌ Failed to upgrade, will retry")
                         task.wait(1)
                     end
                 else
-                    print("⏳ Waiting for money to upgrade unit:", unitNameStr, "- STAYING on this slot")
+                  --  print("⏳ Waiting for money to upgrade unit:", unitNameStr, "- STAYING on this slot")
                     
                 end
             end
         else
-            print("⚠️ No valid unit in slot " .. currentUpgradeSlot .. ", moving to next")
+           -- print("⚠️ No valid unit in slot " .. currentUpgradeSlot .. ", moving to next")
             currentUpgradeSlot = currentUpgradeSlot + 1
             
             if currentUpgradeSlot > 6 then
                 currentUpgradeSlot = 1
-                print("🔄 All slots checked, restarting from slot 1")
+               -- print("🔄 All slots checked, restarting from slot 1")
             end
         end
 
         task.wait(0.5) 
     end
     
-    print("🛑 Upgrade cycle ended")
+   -- print("🛑 Upgrade cycle ended")
 end
 
 local function startAutoUpgrade()
@@ -1314,7 +1311,7 @@ task.spawn(function()
             local currentSerial = getCurrentChallengeSerial()
             
             if currentSerial and storedChallengeSerial and currentSerial ~= storedChallengeSerial then
-                print("🔄 New Challenge Detected! Serial changed from", storedChallengeSerial, "to", currentSerial)
+                --print("🔄 New Challenge Detected! Serial changed from", storedChallengeSerial, "to", currentSerial)
                 notify("Challenge Update", "New challenge detected - will return to lobby when game ends")
                 
                 -- Set flag to return to lobby when game ends
@@ -1325,7 +1322,7 @@ task.spawn(function()
             elseif currentSerial and not storedChallengeSerial then
                 -- First time detecting a serial
                 storedChallengeSerial = currentSerial
-                print("🆕 First challenge serial detected:", currentSerial)
+                --print("🆕 First challenge serial detected:", currentSerial)
             end
         elseif isInLobby() then
             -- Reset when we're back in lobby
@@ -1369,8 +1366,8 @@ task.spawn(function()
     availableRangerStages = fetchRangerStageData(availableStories)
     
     print("✅ Data fetching complete!")
-    print("📚 Found", #availableStories, "stories")
-    print("🏟️ Found", #availableRangerStages, "ranger stages")
+   -- print("📚 Found", #availableStories, "stories")
+    --print("🏟️ Found", #availableRangerStages, "ranger stages")
 end)
 
 -- ========== Main Priority Loop ==========
