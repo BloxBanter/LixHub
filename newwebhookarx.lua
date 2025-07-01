@@ -157,20 +157,6 @@ local function enableLowPerformanceMode()
             obj.Enabled = false
         end
     end
-local args = {"Abilities VFX",false}
-game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
-local args = {"Hide Cosmetic",true}
-game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
-local args = {"Low Graphic Quality",true}
-game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
-local args = {"HeadBar",false}
-game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
-local args = {"Display Players Units",false}
-game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
-local args = {"DisibleGachaChat",true}
-game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
-local args = {"DisibleDamageText",true}
-game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
 
     print("🚀 Low Performance Mode: ENABLED")
     print("✅ Disabled shadows, particles, textures, and visual effects")
@@ -328,112 +314,6 @@ local function notify(title, content, duration)
         Image = "info",
     })
 end
-
---[[local function sendWebhook(messageType, rewards, clearTime, matchResult)
-    if not ValidWebhook then return end
-    local data
-
-    -- TEST WEBHOOK
-    if messageType == "test" then
-        data = {
-            username = "LixHub Bot",
-            embeds = {{
-                title = "📢 LixHub Notification",
-                description = "Test webhook sent successfully",
-                color = 0x5865F2,
-                footer = {
-                    text = "LixHub Auto Logger"
-                },
-                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-            }}
-        }
-
-    -- STAGE COMPLETION WEBHOOK
-    elseif messageType == "stage" then
-        local RewardsUI = player:WaitForChild("PlayerGui"):WaitForChild("HUD"):WaitForChild("InGame"):WaitForChild("Main"):WaitForChild("GameInfo")
-        local RewardsFolder = player:FindFirstChild("RewardsShow")
-
-        local stageName = RewardsUI and RewardsUI:FindFirstChild("Stage") and RewardsUI.Stage.Label.Text or "Unknown Stage"
-        local gameMode = RewardsUI and RewardsUI:FindFirstChild("Gamemode") and RewardsUI.Gamemode.Label.Text or "Unknown Time"
-         local isWin = matchResult == "Victory"
-         local plrlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value or ""
-
-        -- Build reward string
-        local rewardsText = ""
-        if RewardsFolder then
-            for _, rewardFolder in ipairs(RewardsFolder:GetChildren()) do
-                local amountValue = rewardFolder:FindFirstChildWhichIsA("NumberValue")
-                if amountValue then
-                    rewardsText = rewardsText .. string.format("+%s %s\n", tostring(amountValue.Value), rewardFolder.Name)
-                end
-            end
-        else
-            rewardsText = "No rewards found"
-        end
-
-        local stageResult = stageName .. " (" .. gameMode .. ")" .. " - " .. matchResult
-        local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-
-        data = {
-            username = "LixHub Bot",
-            embeds = {{
-                title = "🎯 Stage Finished!",
-                description = stageResult,
-                color = isWin and 0x57F287 or 0xED4245,
-                fields = {
-                    {
-                        name = "👤 Player",
-                        value = player.Name.." ["..plrlevel.."]",
-                        inline = true
-                    },
-                    {
-                        name = isWin and ("✅ Won in:") or ("❌ Lost after:"),
-                        value = clearTime,
-                        inline = true
-                    },
-                    {
-                        name = "🏆 Rewards",
-                        value = rewardsText,
-                        inline = false
-                    },
-                    {
-                        name = "📈 Script Version",
-                        value = "v1.0.0",
-                        inline = true
-                    }
-                },
-                footer = {
-                    text = "discord.gg/lixhub"
-                },
-                timestamp = timestamp
-            }}
-        }
-
-    else
-        return -- Unrecognized message type
-    end
-
-    -- Encode & send webhook
-    local payload = HttpService:JSONEncode(data)
-    local requestFunc = (syn and syn.request) or (http and http.request) or request
-    if requestFunc then
-        local success, result = pcall(function()
-            return requestFunc({
-                Url = ValidWebhook,
-                Method = "POST",
-                Headers = {
-                    ["Content-Type"] = "application/json"
-                },
-                Body = payload
-            })
-        end)
-        if not success then
-            warn("Webhook failed to send: " .. tostring(result))
-        end
-    else
-        warn("No compatible HTTP request method found.")
-    end
-end--]]
 
 local function findMatchingStageAndCheckUnits(detectedRewards)
     local foundUnits = {}
@@ -1667,10 +1547,6 @@ task.spawn(function()
     end
 end)
 
-local MerchantSection = LobbyTab:CreateSection("Auto Merchant")
-
-local MerchantDivider = LobbyTab:CreateDivider()
-
 local Toggle = LobbyTab:CreateToggle({
    Name = "Auto Purchase Merchant Items",
    CurrentValue = false,
@@ -1700,10 +1576,6 @@ task.spawn(function()
         task.wait(1)
     end
 end)
-
-local ClaimerSection = LobbyTab:CreateSection("Auto Claimer")
-
-local ClaimerDivider = LobbyTab:CreateDivider()
 
 local Toggle = LobbyTab:CreateToggle({
    Name = "Auto Claim Battlepass",
@@ -1753,10 +1625,6 @@ task.spawn(function()
     end
 end)
 
-local OtherSection = LobbyTab:CreateSection("Other")
-
-local OtherDivider = LobbyTab:CreateDivider()
-
 local Button = LobbyTab:CreateButton({
     Name = "Redeem all valid codes",
     Callback = function()
@@ -1782,11 +1650,6 @@ Toggle = LobbyTab:CreateToggle({
         end
     end,
 })
-
-local StatsTabSection1 = LobbyTab:CreateSection("Stats")
-
-local StatsTabDivider1 = LobbyTab:CreateDivider()
-
 
 
 local JoinerTab = Window:CreateTab("Joiner", "plug-zap") -- Title, Image
@@ -1834,21 +1697,6 @@ local StageDropdown = JoinerTab:CreateDropdown({
     StageDropdown:Refresh(storyNames, true)
     print("✅ Story dropdown updated with", #storyNames, "options")
 end)
-
---[[-- Update story dropdown when data is available
-task.spawn(function()
-    while #availableStories == 0 do
-        task.wait(0.5)
-    end
-    
-    local storyNames = {}
-    for _, story in ipairs(availableStories) do
-        table.insert(storyNames, story.SeriesName)
-    end
-    
-    StageDropdown:Refresh(storyNames, true)
-    print("✅ Story dropdown updated with", #storyNames, "options")
-end)--]]
 
 local ChapterDropdown = JoinerTab:CreateDropdown({
    Name = "Stage Chapter",
@@ -2047,10 +1895,6 @@ local Toggle = JoinerTab:CreateToggle({
    end,
 })
 
-local InfinityCastleSection = JoinerTab:CreateSection("Infinity Castle")
-
-local InfinityCastleDivider = JoinerTab:CreateDivider()
-
 local Toggle = JoinerTab:CreateToggle({
    Name = "Auto Infinity Castle",
    CurrentValue = false,
@@ -2229,10 +2073,6 @@ local Toggle = GameTab:CreateToggle({
       end
    end,
 })
-
-local PerformanceSection = GameTab:CreateSection("Performance")
-
-local PerformanceDivider = GameTab:CreateDivider()
 
 local Button = GameTab:CreateButton({
     Name = "Low Performance Mode (Rejoin To Disable)",
