@@ -2342,7 +2342,6 @@ GameEndRemote.OnClientEvent:Connect(function()
     end
     gameRunning = false
     resetUpgradeOrder()
-    hasSentWebhook = true
 
     -- Wait a bit longer for both remote events and folder updates
     task.wait(0.5)
@@ -2376,6 +2375,7 @@ GameEndRemote.OnClientEvent:Connect(function()
 
     -- Send webhook with enhanced tracking
     sendWebhook("stage", nil, clearTimeStr, matchResult)
+     hasSentWebhook = true
     notify("✅ Webhook", "Stage completed and sent to Discord (Enhanced Tracking).")
     hasGameEnded = true
 
