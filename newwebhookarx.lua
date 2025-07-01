@@ -104,6 +104,7 @@ local lowPerformanceEnabled
 local availableStories = {}
 local availableRangerStages = {}
 local selectedStory
+local hasGameEnded = false
 
 local codes = { --////////////////////////////////////////////////////////////////UPDATE\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\--
     "SorryRaids",
@@ -2076,6 +2077,13 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoNextToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoNextEnabled = Value
+      if hasGameEnded then
+        game:GetService("ReplicatedStorage"):WaitForChild("Remote")
+             :WaitForChild("Server")
+             :WaitForChild("OnGame")
+             :WaitForChild("Voting")
+             :WaitForChild("VoteNext"):FireServer()
+      end
    end,
 })
 
@@ -2085,7 +2093,7 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoRetryToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoRetryEnabled = Value
-      if autoRetryEnabled then
+      if hasGameEnded then
         game:GetService("ReplicatedStorage")
                 :WaitForChild("Remote")
                 :WaitForChild("Server")
@@ -2125,6 +2133,9 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoLobbyToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoReturnEnabled = Value
+      if hasGameEnded then
+        TeleportService:Teleport(72829404259339, player)
+      end
    end,
 })
 
@@ -2295,6 +2306,7 @@ GameStartRemote.OnClientEvent:Connect(function(...)
     if autoUpgradeEnabled then
         notify("Game Started", "Auto upgrade restarted!")
     end
+        hasGameEnded = false
         hasSentWebhook = false
 		stageStartTime = tick()
 		print("🟢 Stage started at", stageStartTime)
@@ -2323,7 +2335,7 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("⏳ Webhook still on cooldown…")
         return
     end
-    
+    hasGameEnded = true
     gameRunning = false
     resetUpgradeOrder()
     hasSentWebhook = true
