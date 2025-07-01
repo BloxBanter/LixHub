@@ -2377,7 +2377,6 @@ GameEndRemote.OnClientEvent:Connect(function()
     sendWebhook("stage", nil, clearTimeStr, matchResult)
      hasSentWebhook = true
     notify("✅ Webhook", "Stage completed and sent to Discord (Enhanced Tracking).")
-    hasGameEnded = true
 
     -- Reset reward capture for next game
     hasNewRewards = false
@@ -2433,6 +2432,7 @@ GameEndRemote.OnClientEvent:Connect(function()
              :WaitForChild("VoteNext"):FireServer()
         end)
     end
+     hasGameEnded = true
 end)
 
 -- Initialize the enhanced reward system
