@@ -2230,9 +2230,9 @@ local Toggle = GameTab:CreateToggle({
    end,
 })
 
-local PerformanceSection = JoinerTab:CreateSection("Performance")
+local PerformanceSection = GameTab:CreateSection("Performance")
 
-local PerformanceDivider = JoinerTab:CreateDivider()
+local PerformanceDivider = GameTab:CreateDivider()
 
 local Button = GameTab:CreateButton({
     Name = "Low Performance Mode (Rejoin To Disable)",
