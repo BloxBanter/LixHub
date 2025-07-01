@@ -1011,7 +1011,7 @@ local function checkAndExecuteHighestPriority()
             local bestTier = 0
 
             for _, item in ipairs(inventoryFrame:GetChildren()) do
-                if item.Name:lower():find("ghoul") then
+                if item.Name:lower():find("portal") then
                     local tier = getTierValue(item.Name)
                     if tier > bestTier then
                         bestTier = tier
