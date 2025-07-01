@@ -1516,7 +1516,7 @@ end
 
 local function fireUltimateForUnit(unitData)
    local success, result = pcall(function()
-      local args = { unitData.part.Name }
+      local args = { unitData.part }
       game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Ultimate"):FireServer(unpack(args))
       print("Fired ultimate for unit:", unitData.part.Name, "- Ability:", unitData.abilityName)
    end)
