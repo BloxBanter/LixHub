@@ -2077,7 +2077,7 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoNextToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoNextEnabled = Value
-      if hasGameEnded then
+      if hasGameEnded and autoNextEnabled then
         game:GetService("ReplicatedStorage"):WaitForChild("Remote")
              :WaitForChild("Server")
              :WaitForChild("OnGame")
@@ -2106,7 +2106,7 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoRetryToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoRetryEnabled = Value
-      if hasGameEnded then
+      if hasGameEnded and autoRetryEnabled then
         game:GetService("ReplicatedStorage")
                 :WaitForChild("Remote")
                 :WaitForChild("Server")
@@ -2137,7 +2137,7 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoLobbyToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoReturnEnabled = Value
-      if hasGameEnded then
+      if hasGameEnded and autoReturnEnabled then
         TeleportService:Teleport(72829404259339, player)
       end
    end,
