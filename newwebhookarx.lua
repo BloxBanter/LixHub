@@ -1490,9 +1490,10 @@ local function getUnitsWithUltimates()
             local infoFolder = part:FindFirstChild("Info")
             if infoFolder then
                local activeAbility = infoFolder:FindFirstChild("ActiveAbility")
-               if activeAbility and activeAbility:IsA("StringValue") then
+                local targetObject = infoFolder:FindFirstChild("TargetObject")
+               if activeAbility and activeAbility:IsA("StringValue") and targetObject and targetObject:IsA("ObjectValue") then
                   -- If ActiveAbility has a value (not empty), unit has ultimate
-                  if activeAbility.Value ~= "" then
+                  if activeAbility.Value ~= "" and targetObject.Value ~= nil then
                      table.insert(unitsWithUltimates, {
                         part = part,
                         abilityName = activeAbility.Value
@@ -1518,12 +1519,7 @@ local function fireUltimateForUnit(unitData)
    local success, result = pcall(function()
       local args = { unitData.part }
       game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Ultimate"):FireServer(unpack(args))
-      print("Fired ultimate for unit:", unitData.part.Name, "- Ability:", unitData.abilityName)
    end)
-   
-   if not success then
-      warn("Failed to fire ultimate for unit:", unitData.part.Name, "Error:", result)
-   end
 end
 
 local function autoUltimateLoop()
@@ -1542,7 +1538,7 @@ local function autoUltimateLoop()
             wait(0.1) -- Small delay between ultimates to prevent spam
          end
       else
-         print("No units with ultimates found")
+        -- print("No units with ultimates found")
       end
       
       wait(1) -- Wait before checking again (increased since we're being more selective)
