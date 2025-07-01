@@ -2,7 +2,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "LixHub - Anime Rangers X - optimization",
-   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Icon = "apple", -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
@@ -963,13 +963,9 @@ end
 
 local function getCurrentChallengeSerial()
     local success, serial = pcall(function()
-        return challengeFolder:FindFirstChild("serial_number") and challengeFolder.serial_number.Value
+        return challengeFolder:WaitForChild("serial_number") and challengeFolder:WaitForChild("serial_number").Value
     end)
     return success and serial or nil
-end
-
-if not storedChallengeSerial then
-    storedChallengeSerial = getCurrentChallengeSerial()
 end
 
 local function getUnitNameFromSlot(slotNumber)
@@ -1051,21 +1047,23 @@ local function leftToRightUpgrade()
                 print("🏆 Unit " .. unitNameStr .. " reached max level, moving to next slot")
                 currentUpgradeSlot = currentUpgradeSlot + 1
                 if currentUpgradeSlot > 6 then currentUpgradeSlot = 1 end
+                task.wait(0.05) -- shorter delay when just moving to next
             else
                 if getCurrentMoney() >= getUpgradeCost(unitNameStr) then
                     if upgradeUnit(unitNameStr) then
-                        task.wait(UPGRADE_COOLDOWN)
+                        task.wait(UPGRADE_COOLDOWN) -- delay after actual upgrade
                     else
-                        task.wait(1)
+                        task.wait(1) -- delay if upgrade failed
                     end
+                else
+                    task.wait(0.1) -- short wait before retrying money
                 end
             end
         else
             currentUpgradeSlot = currentUpgradeSlot + 1
             if currentUpgradeSlot > 6 then currentUpgradeSlot = 1 end
+            task.wait(0.05) -- short delay when skipping empty slot
         end
-
-        task.wait(0.5)
     end
 end
 
@@ -1096,7 +1094,7 @@ local function startAutoUpgrade()
                 print("⏳ Waiting for game to start...")
             end
 
-            task.wait(1)
+            task.wait(0.5)
         end
     end)
 end
@@ -1194,6 +1192,10 @@ if player.Character then
     updateOverheadText()
 end
 
+if not storedChallengeSerial then
+    storedChallengeSerial = getCurrentChallengeSerial()
+end
+
 task.spawn(function()
     while true do
         task.wait(5)
@@ -1269,6 +1271,8 @@ task.spawn(function()
         checkAndExecuteHighestPriority()
     end
 end)
+
+
 
 local LogTab = Window:CreateTab("Update Log", "scroll") -- Title, Image
 
@@ -2097,12 +2101,12 @@ GameEndRemote.OnClientEvent:Connect(function()
     if player.PlayerGui:FindFirstChild("Visual") then
         player.PlayerGui:FindFirstChild("Visual"):Destroy()
     end
-    if player:FindFirstChild("SavedToTeleport") then
+    --[[if player:FindFirstChild("SavedToTeleport") then
         player:FindFirstChild("SavedToTeleport"):Destroy()
     end
     for _, child in pairs(ReplicatedStorage.Player_Data[player.Name].RangerStage:GetChildren()) do
         child:Destroy()
-    end
+    end--]]
 
     local clearTimeStr = "Unknown"
     if stageStartTime then
