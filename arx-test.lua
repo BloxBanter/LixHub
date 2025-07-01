@@ -154,6 +154,14 @@ local function enableLowPerformanceMode()
             obj.Enabled = false
         end
     end
+
+    ReplicatedStorage.Player_Data[player.Name].Setting["Abilities VFX"].Value = false
+    ReplicatedStorage.Player_Data[player.Name].Setting["DisibleDamageText"].Value = true
+    ReplicatedStorage.Player_Data[player.Name].Setting["DisibleGachaChat"].Value = true
+    ReplicatedStorage.Player_Data[player.Name].Setting["Display Players Units"].Value = false
+    ReplicatedStorage.Player_Data[player.Name].Setting["Hide Cosmetic"].Value = true
+    ReplicatedStorage.Player_Data[player.Name].Setting["Low Graphic Quality"].Value = true
+    ReplicatedStorage.Player_Data[player.Name].Setting["HeadBar"].Value = false
     
     print("🚀 Low Performance Mode: ENABLED")
     print("✅ Disabled shadows, particles, textures, and visual effects")
@@ -1454,7 +1462,7 @@ local Label = LogTab:CreateLabel("+Fixed Bugs, +Auto Purchase from Merchant [lob
 local LobbyTab = Window:CreateTab("Lobby", "tv") -- Title, Image
 
 local Button = LobbyTab:CreateButton({
-    Name = "LOW FPS MODE",
+    Name = "Low Performance Mode (Rejoin To Disable)",
     Callback = function()
         enableLowPerformanceMode()
     end,
