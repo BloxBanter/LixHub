@@ -2310,8 +2310,9 @@ GameStartRemote.OnClientEvent:Connect(function(...)
     if autoUpgradeEnabled then
         notify("Game Started", "Auto upgrade restarted!")
     end
-        hasGameEnded = false
+
         hasSentWebhook = false
+        hasGameEnded = false
 		stageStartTime = tick()
 		print("🟢 Stage started at", stageStartTime)
 	end
@@ -2339,7 +2340,6 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("⏳ Webhook still on cooldown…")
         return
     end
-    hasGameEnded = true
     gameRunning = false
     resetUpgradeOrder()
     hasSentWebhook = true
@@ -2377,6 +2377,7 @@ GameEndRemote.OnClientEvent:Connect(function()
     -- Send webhook with enhanced tracking
     sendWebhook("stage", nil, clearTimeStr, matchResult)
     notify("✅ Webhook", "Stage completed and sent to Discord (Enhanced Tracking).")
+    hasGameEnded = true
 
     -- Reset reward capture for next game
     hasNewRewards = false
