@@ -94,16 +94,12 @@ local autoUpgradeEnabled
 local upgradeMethod = "Left to right until max"
 local unitLevelCaps = {9, 9, 9, 9, 9, 9}
 local upgradeTask = nil
-local lastUpgradeTime = 0
 local UPGRADE_COOLDOWN = 0.5
 local currentUpgradeSlot = 1  -- Track which slot we're currently upgrading
 local gameRunning = false
-local removeSummoningUIEnabled
 local autoAfkTeleportEnabled
-local lowPerformanceEnabled
 local availableStories = {}
 local availableRangerStages = {}
-local selectedStory
 local hasGameEnded = false
 local AutoUltimateEnabled
 
@@ -1649,41 +1645,15 @@ local LogTabSection = LogTab:CreateSection("01/07/2025")
 
 local LogTabDivider = LogTab:CreateDivider()
 
-local Label = LogTab:CreateLabel("+Fixed Bugs, +Low Performance Mode [game]") -- Title, Icon, Color, IgnoreTheme
+local Label = LogTab:CreateLabel("+Fixed Bugs, +Auto Ultimate [autoplay], +UI overhaul") -- Title, Icon, Color, IgnoreTheme
 
 local LobbyTab = Window:CreateTab("Lobby", "tv") -- Title, Image
-
-local Button = LobbyTab:CreateButton({
-    Name = "Redeem all valid codes",
-    Callback = function()
-        for _, code in ipairs(codes) do
-            notify("Redeeming code: ", code, 2.5)
-            CodeRemote:FireServer(code)
-            task.wait(0.25) -- small delay so server doesn't get flooded
-        end
-         notify("Redeem all valid codes", "Tried to redeem all codes!")
-    end,
-})
 
 local Button = LobbyTab:CreateButton({
     Name = "Return to lobby",
     Callback = function()
         notify("Return to lobby", "Returning to lobby!")
          TeleportService:Teleport(72829404259339, player)
-    end,
-})
-
-Toggle = LobbyTab:CreateToggle({
-    Name = "Auto AFK Teleport",
-    CurrentValue = false,
-    Flag = "AutoAfkTeleportToggle",
-    Callback = function(Value)
-        autoAfkTeleportEnabled = Value
-        if autoAfkTeleportEnabled then
-            print("🟢 Auto AFK teleport enabled")
-        else
-            print("🔴 Auto AFK teleport disabled")
-        end
     end,
 })
 
@@ -1696,6 +1666,10 @@ task.spawn(function()
         end
     end
 end)
+
+local MerchantSection = LobbyTab:CreateSection("Auto Merchant")
+
+local MerchantDivider = LobbyTab:CreateDivider()
 
 local Toggle = LobbyTab:CreateToggle({
    Name = "Auto Purchase Merchant Items",
@@ -1726,6 +1700,10 @@ task.spawn(function()
         task.wait(1)
     end
 end)
+
+local ClaimerSection = LobbyTab:CreateSection("Auto Claimer")
+
+local ClaimerDivider = LobbyTab:CreateDivider()
 
 local Toggle = LobbyTab:CreateToggle({
    Name = "Auto Claim Battlepass",
@@ -1774,6 +1752,36 @@ task.spawn(function()
         end
     end
 end)
+
+local OtherSection = LobbyTab:CreateSection("Other")
+
+local OtherDivider = LobbyTab:CreateDivider()
+
+local Button = LobbyTab:CreateButton({
+    Name = "Redeem all valid codes",
+    Callback = function()
+        for _, code in ipairs(codes) do
+            notify("Redeeming code: ", code, 2.5)
+            CodeRemote:FireServer(code)
+            task.wait(0.25) -- small delay so server doesn't get flooded
+        end
+         notify("Redeem all valid codes", "Tried to redeem all codes!")
+    end,
+})
+
+Toggle = LobbyTab:CreateToggle({
+    Name = "Auto AFK Teleport",
+    CurrentValue = false,
+    Flag = "AutoAfkTeleportToggle",
+    Callback = function(Value)
+        autoAfkTeleportEnabled = Value
+        if autoAfkTeleportEnabled then
+            print("🟢 Auto AFK teleport enabled")
+        else
+            print("🔴 Auto AFK teleport disabled")
+        end
+    end,
+})
 
 local StatsTabSection1 = LobbyTab:CreateSection("Stats")
 
@@ -1998,9 +2006,9 @@ task.spawn(function()
     print("✅ Ranger stage dropdown updated with", #rangerDisplayNames, "options")
 end)
 
-local OtherTabSection1 = JoinerTab:CreateSection("Other")
+local BossAttackSection = JoinerTab:CreateSection("Boss Attack")
 
-local OtherTabDivider1 = JoinerTab:CreateDivider()
+local BossAttackTabDivider = JoinerTab:CreateDivider()
 
 local Toggle = JoinerTab:CreateToggle({
    Name = "Auto join boss attack",
@@ -2039,6 +2047,10 @@ local Toggle = JoinerTab:CreateToggle({
    end,
 })
 
+local InfinityCastleSection = JoinerTab:CreateSection("Infinity Castle")
+
+local InfinityCastleDivider = JoinerTab:CreateDivider()
+
 local Toggle = JoinerTab:CreateToggle({
    Name = "Auto Infinity Castle",
    CurrentValue = false,
@@ -2057,6 +2069,8 @@ local Toggle = JoinerTab:CreateToggle({
       end
    end,
 })
+local Label = JoinerTab:CreateLabel("Infinity Castle Floor: ", "badge-info") -- Title, Icon, Color, IgnoreTheme
+
 local Label = JoinerTab:CreateLabel("You need decently good units for infinity castle to win. Don't use any other auto joiners if you're enabling this and don't panic if it fails sometimes (unless your units are not good enough).", "badge-info") -- Title, Icon, Color, IgnoreTheme
 
 local RaidTab = Window:CreateTab("Raids", "swords") -- Title, Image
@@ -2216,6 +2230,10 @@ local Toggle = GameTab:CreateToggle({
    end,
 })
 
+local PerformanceSection = JoinerTab:CreateSection("Performance")
+
+local PerformanceDivider = JoinerTab:CreateDivider()
+
 local Button = GameTab:CreateButton({
     Name = "Low Performance Mode (Rejoin To Disable)",
     Callback = function()
@@ -2334,7 +2352,7 @@ local Slider6 = AutoPlayTab:CreateSlider({
    end,
 })
 
-local Toggle = GameTab:CreateToggle({
+local Toggle = AutoPlayTab:CreateToggle({
    Name = "Auto Ultimate",
    CurrentValue = false,
    Flag = "AutoUltimate", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
