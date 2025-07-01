@@ -1039,74 +1039,47 @@ local function upgradeUnit(unitName)
 end
 
 local function leftToRightUpgrade()
-   -- print("🔄 Starting upgrade cycle from slot " .. currentUpgradeSlot)
-    
     while autoUpgradeEnabled and gameRunning do
         local unitName = getUnitNameFromSlot(currentUpgradeSlot)
-        local unitNameStr = unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) or "nil"
-        local maxLevel = unitLevelCaps[currentUpgradeSlot] or 9
-        
-       -- print("🔍 Checking slot " .. currentUpgradeSlot .. " unit:", unitNameStr)
 
-        if unitName and unitNameStr ~= "" and unitNameStr ~= "nil" then
+        if unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) ~= "" then
+            local unitNameStr = typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)
+            local maxLevel = unitLevelCaps[currentUpgradeSlot] or 9
             local currentLevel = getCurrentUpgradeLevel(unitNameStr)
 
             if currentLevel == "MAX" or tonumber(currentLevel) >= maxLevel then
                 print("🏆 Unit " .. unitNameStr .. " reached max level, moving to next slot")
                 currentUpgradeSlot = currentUpgradeSlot + 1
-                
-                -- If we've checked all slots, restart from slot 1
-                if currentUpgradeSlot > 6 then
-                    currentUpgradeSlot = 1
-                   -- print("🔄 All slots checked, restarting from slot 1")
-                end
+                if currentUpgradeSlot > 6 then currentUpgradeSlot = 1 end
             else
-                -- Try to upgrade current unit - STRICT ORDER: Wait for money!
-                local currentMoney = getCurrentMoney()
-                local upgradeCost = getUpgradeCost(unitNameStr)
-                
-               -- print("📊 Unit '" .. unitNameStr .. "' - Level:", tostring(currentLevel), "Max:", maxLevel, "Cost:", upgradeCost, "Money:", currentMoney)
-
-                if currentMoney >= upgradeCost then
-                   -- print("🔧 Upgrading unit:", unitNameStr)
+                if getCurrentMoney() >= getUpgradeCost(unitNameStr) then
                     if upgradeUnit(unitNameStr) then
                         task.wait(UPGRADE_COOLDOWN)
                     else
-                      --  print("❌ Failed to upgrade, will retry")
                         task.wait(1)
                     end
-                else
-                  --  print("⏳ Waiting for money to upgrade unit:", unitNameStr, "- STAYING on this slot")
-                    
                 end
             end
         else
-           -- print("⚠️ No valid unit in slot " .. currentUpgradeSlot .. ", moving to next")
             currentUpgradeSlot = currentUpgradeSlot + 1
-            
-            if currentUpgradeSlot > 6 then
-                currentUpgradeSlot = 1
-               -- print("🔄 All slots checked, restarting from slot 1")
-            end
+            if currentUpgradeSlot > 6 then currentUpgradeSlot = 1 end
         end
 
-        task.wait(0.5) 
+        task.wait(0.5)
     end
-    
-   -- print("🛑 Upgrade cycle ended")
 end
 
 local function startAutoUpgrade()
-    if not isInLobby() then
+    if isInLobby() then return end
+
     if upgradeTask then
         task.cancel(upgradeTask)
     end
-    
+
     upgradeTask = task.spawn(function()
         while autoUpgradeEnabled do
-            -- Wait for game to be running before starting upgrades
             if gameRunning then
-                local success, error = pcall(function()
+                local success, errMsg = pcall(function()
                     if upgradeMethod == "Left to right until max" then
                         leftToRightUpgrade()
                     elseif upgradeMethod == "randomize" then
@@ -1115,18 +1088,17 @@ local function startAutoUpgrade()
                         print("🔄 Lowest level spread method not implemented yet")
                     end
                 end)
-                
+
                 if not success then
-                    warn("❌ Auto upgrade error:", error)
+                    warn("❌ Auto upgrade error:", errMsg)
                 end
             else
                 print("⏳ Waiting for game to start...")
             end
-            
+
             task.wait(1)
         end
     end)
-end
 end
 
 local function stopAutoUpgrade()
@@ -1142,86 +1114,75 @@ local function resetUpgradeOrder()
 end
 
 local function getUnitsWithUltimates()
-   local unitsWithUltimates = {}
-   local success, result = pcall(function()
-      local agentFolder = workspace:WaitForChild("Agent", 5)
-      if not agentFolder then return {} end
-      
-      local unitFolder = agentFolder:WaitForChild("UnitT", 5)
-      if not unitFolder then return {} end
-      
-      -- Check each unit for ultimate ability
-      for _, part in pairs(unitFolder:GetChildren()) do
-         if part:IsA("BasePart") or part:IsA("Part") then
-            -- Check if unit has Info folder and ActiveAbility
-            local infoFolder = part:FindFirstChild("Info")
-            if infoFolder then
-               local activeAbility = infoFolder:FindFirstChild("ActiveAbility")
-                local targetObject = infoFolder:FindFirstChild("TargetObject")
-               if activeAbility and activeAbility:IsA("StringValue") and targetObject and targetObject:IsA("ObjectValue") then
-                  -- If ActiveAbility has a value (not empty), unit has ultimate
-                  if activeAbility.Value ~= "" and targetObject.Value ~= nil then
-                     table.insert(unitsWithUltimates, {
-                        part = part,
-                        abilityName = activeAbility.Value
-                     })
-                  end
-               end
+    local unitsWithUltimates = {}
+    local success, result = pcall(function()
+        local agentFolder = workspace:WaitForChild("Agent", 5)
+        if not agentFolder then return end
+        
+        local unitFolder = agentFolder:WaitForChild("UnitT", 5)
+        if not unitFolder then return end
+        
+        for _, part in pairs(unitFolder:GetChildren()) do
+            if (part:IsA("BasePart") or part:IsA("Part")) then
+                local infoFolder = part:FindFirstChild("Info")
+                if infoFolder then
+                    local activeAbility = infoFolder:FindFirstChild("ActiveAbility")
+                    local targetObject = infoFolder:FindFirstChild("TargetObject")
+                    if activeAbility and targetObject and activeAbility:IsA("StringValue") and targetObject:IsA("ObjectValue") then
+                        if activeAbility.Value ~= "" and targetObject.Value then
+                            table.insert(unitsWithUltimates, {
+                                part = part,
+                                abilityName = activeAbility.Value
+                            })
+                        end
+                    end
+                end
             end
-         end
-      end
-      
-      return unitsWithUltimates
-   end)
-   
-   if success then
-      return result
-   else
-      warn("Error getting units with ultimates:", result)
-      return {}
-   end
+        end
+    end)
+    
+    if success then
+        return unitsWithUltimates
+    else
+        warn("Error getting units with ultimates:", result)
+        return {}
+    end
 end
 
 local function fireUltimateForUnit(unitData)
-   local success, result = pcall(function()
-      local args = { unitData.part }
-      game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Ultimate"):FireServer(unpack(args))
-   end)
+    pcall(function()
+        local args = { unitData.part }
+        game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Ultimate"):FireServer(unpack(args))
+    end)
 end
 
 local function autoUltimateLoop()
     if isInLobby() then return end
-   while AutoUltimateEnabled do
-      local unitsWithUltimates = getUnitsWithUltimates()
-      
-      if #unitsWithUltimates > 0 then
-       -- print("Found", #unitsWithUltimates, "units with ultimates")
-         
-         -- Process each unit that has an ultimate
-         for _, unitData in pairs(unitsWithUltimates) do
-            if not AutoUltimateEnabled then break end -- Check if still enabled
-            
-            fireUltimateForUnit(unitData)
-            wait(0.1) -- Small delay between ultimates to prevent spam
-         end
-      else
-        -- print("No units with ultimates found")
-      end
-      
-      wait(1) -- Wait before checking again (increased since we're being more selective)
-   end
+    
+    while AutoUltimateEnabled do
+        local unitsWithUltimates = getUnitsWithUltimates()
+        
+        if #unitsWithUltimates > 0 then
+            for _, unitData in pairs(unitsWithUltimates) do
+                if not AutoUltimateEnabled then break end
+                fireUltimateForUnit(unitData)
+                task.wait(0.1)
+            end
+        end
+        
+        task.wait(1)
+    end
 end
 
 
 local function updateOverheadText()
-    local success, err = pcall(function()
+    pcall(function()
         local head = player.Character:WaitForChild("Head", 5)
-        local billboard = head:FindFirstChild("PlayerHeadGui")
-
+        local billboard = head and head:FindFirstChild("PlayerHeadGui")
         if billboard then
             local textLabel = billboard:FindFirstChild("PlayerName")
             if textLabel then
-                textLabel.Text = "🔥 Protected By LixHub 🔥" -- Your custom overhead text
+                textLabel.Text = "🔥 Protected By LixHub 🔥"
             end
         end
     end)
@@ -1229,7 +1190,6 @@ end
 
 player.CharacterAdded:Connect(updateOverheadText)
 
--- Update immediately if already spawned
 if player.Character then
     updateOverheadText()
 end
