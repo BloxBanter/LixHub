@@ -2085,10 +2085,18 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoRetryToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoRetryEnabled = Value
+      if autoRetryEnabled then
+        game:GetService("ReplicatedStorage")
+                :WaitForChild("Remote")
+                :WaitForChild("Server")
+                :WaitForChild("OnGame")
+                :WaitForChild("Voting")
+                :WaitForChild("VoteRetry"):FireServer()
+      end
    end,
 })
 
-task.spawn(function()
+--[[task.spawn(function()
     while true do
         task.wait(1)
 
@@ -2109,7 +2117,7 @@ task.spawn(function()
             end
         end
     end
-end)
+end)--]]
 
 local Toggle = GameTab:CreateToggle({
    Name = "Auto Lobby",
