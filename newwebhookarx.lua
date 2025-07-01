@@ -2087,6 +2087,19 @@ local Toggle = GameTab:CreateToggle({
    end,
 })
 
+task.spawn(function()
+    while true do
+        task.wait(1)
+                if autoNextEnabled and hasGameEnded then
+                 game:GetService("ReplicatedStorage"):WaitForChild("Remote")
+             :WaitForChild("Server")
+             :WaitForChild("OnGame")
+             :WaitForChild("Voting")
+             :WaitForChild("VoteNext"):FireServer()
+        end
+    end
+end)
+
 local Toggle = GameTab:CreateToggle({
    Name = "Auto Retry",
    CurrentValue = false,
@@ -2104,28 +2117,19 @@ local Toggle = GameTab:CreateToggle({
    end,
 })
 
---[[task.spawn(function()
+task.spawn(function()
     while true do
         task.wait(1)
-
-        if autoRetryEnabled then
-            local voteVisible = false
-
-            pcall(function()
-                voteVisible = player:WaitForChild("PlayerGui")
-                    :WaitForChild("HUD")
-                    :WaitForChild("InGame")
-                    :WaitForChild("VotePlaying").Visible
-            end)
-
-            if voteVisible then
-                print("✅ Vote screen is visible — sending start signal...")
-                StartGameRemote:FireServer()
-                task.wait(3) -- optional cooldown between fires
-            end
+                if autoRetryEnabled and hasGameEnded then
+                 game:GetService("ReplicatedStorage")
+                :WaitForChild("Remote")
+                :WaitForChild("Server")
+                :WaitForChild("OnGame")
+                :WaitForChild("Voting")
+                :WaitForChild("VoteRetry"):FireServer()
         end
     end
-end)--]]
+end)
 
 local Toggle = GameTab:CreateToggle({
    Name = "Auto Lobby",
