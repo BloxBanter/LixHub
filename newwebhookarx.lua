@@ -113,6 +113,9 @@ local codes = { --//////////////////////////////////////////////////////////////
     "BOSSTAKEOVER",
 }
 
+local function isInLobby()
+    return workspace:FindFirstChild("Lobby") ~= nil
+end
 
 local function enableLowPerformanceMode()
     -- 1. REDUCE LIGHTING QUALITY
@@ -573,6 +576,7 @@ local function processRemoteRewards(rewardData)
 end
 
 local function hookRewardSystem()
+    if isInLobby() then return end
     local success, err = pcall(function()
         local gameEndedRemote = ReplicatedStorage.Remote.Client.UI.GameEndedUI
         
@@ -979,12 +983,6 @@ local function autoPurchaseItems()
         end
     end
 end
-
-local function isInLobby()
-    return workspace:FindFirstChild("Lobby") ~= nil
-end
-
-
 
 local function autoJoinRangerStage(stageName)
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
