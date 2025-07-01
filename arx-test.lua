@@ -154,15 +154,21 @@ local function enableLowPerformanceMode()
             obj.Enabled = false
         end
     end
+local args = {"Abilities VFX",false}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"Hide Cosmetic",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"Low Graphic Quality",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"HeadBar",false}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"Display Players Units",false}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"DisibleGachaChat",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"DisibleDamageText",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
 
-    ReplicatedStorage.Player_Data[player.Name].Setting["Abilities VFX"].Value = false
-    ReplicatedStorage.Player_Data[player.Name].Setting["DisibleDamageText"].Value = true
-    ReplicatedStorage.Player_Data[player.Name].Setting["DisibleGachaChat"].Value = true
-    ReplicatedStorage.Player_Data[player.Name].Setting["Display Players Units"].Value = false
-    ReplicatedStorage.Player_Data[player.Name].Setting["Hide Cosmetic"].Value = true
-    ReplicatedStorage.Player_Data[player.Name].Setting["Low Graphic Quality"].Value = true
-    ReplicatedStorage.Player_Data[player.Name].Setting["HeadBar"].Value = false
-    
     print("🚀 Low Performance Mode: ENABLED")
     print("✅ Disabled shadows, particles, textures, and visual effects")
 end
