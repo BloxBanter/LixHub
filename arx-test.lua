@@ -113,8 +113,6 @@ local codes = { --//////////////////////////////////////////////////////////////
 
 
 local function enableLowPerformanceMode()
-    if not lowPerformanceEnabled then return end
-
     -- 1. REDUCE LIGHTING QUALITY
     Lighting.Brightness = 1
     Lighting.GlobalShadows = false
@@ -531,7 +529,7 @@ local function buildRewardsText()
 
                     -- Get total amount from player data
                     local totalAmount = getTotalItemAmount(itemName)
-                    local totalText = totalAmount and string.format(" (%s total)", totalAmount) or ""
+                    local totalText = totalAmount and string.format(" [%s total]", totalAmount) or ""
 
                     -- Display with colon for standard stuff like XP/Gold, and × for items
                     if itemName:lower():match("exp") or itemName:lower():match("gold") then
@@ -1457,8 +1455,7 @@ local LobbyTab = Window:CreateTab("Lobby", "tv") -- Title, Image
 
 local Button = LobbyTab:CreateButton({
     Name = "LOW FPS MODE",
-    Callback = function(Value)
-        lowPerformanceEnabled = Value
+    Callback = function()
         enableLowPerformanceMode()
     end,
 })
