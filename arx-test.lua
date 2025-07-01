@@ -40,22 +40,14 @@ local ValidWebhook
 local HttpService = game:GetService("HttpService")
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameEndRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Client"):WaitForChild("UI"):WaitForChild("GameEndedUI")
 local CodeRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Lobby"):WaitForChild("Code")
 local StartGameRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("OnGame"):WaitForChild("Voting"):WaitForChild("VotePlaying")
 local merchantRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("Merchant")
-local rangerCooldownFolder = ReplicatedStorage:WaitForChild("Player_Data")[player.Name]:WaitForChild("RangerStage")
---local codeUrl = "https://raw.githubusercontent.com/BloxBanter/LixHub/refs/heads/main/arx-codelist" -- Replace this
  local PlayEvent = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
- local chapterContainer = player:WaitForChild("PlayerGui")
-    :WaitForChild("PlayRoom")
-    :WaitForChild("Main")
-    :WaitForChild("GameStage")
-    :WaitForChild("Main")
-    :WaitForChild("Base")
-    :WaitForChild("Chapter")
-    local challengeFolder = game:GetService("ReplicatedStorage"):WaitForChild("Gameplay"):WaitForChild("Game"):WaitForChild("Challenge")
+local challengeFolder = game:GetService("ReplicatedStorage"):WaitForChild("Gameplay"):WaitForChild("Game"):WaitForChild("Challenge")
 local itemsFolder = challengeFolder:WaitForChild("Items")
 local AFKChamberUI = player:WaitForChild("PlayerGui"):WaitForChild("AFKChamber")
 local STAGE_MODULES_FOLDER = game.ReplicatedStorage.Shared.Info.GameWorld.Levels -- Adjust path
@@ -106,6 +98,7 @@ local currentUpgradeSlot = 1  -- Track which slot we're currently upgrading
 local gameRunning = false
 local removeSummoningUIEnabled
 local autoAfkTeleportEnabled
+local lowPerformanceEnabled
 local availableStories = {}
 local availableRangerStages = {}
 local selectedStory
@@ -117,6 +110,57 @@ local codes = { --//////////////////////////////////////////////////////////////
     "Sorry4Delays",
     "BOSSTAKEOVER",
 }
+
+
+local function enableLowPerformanceMode()
+    if not lowPerformanceEnabled then return end
+
+    -- 1. REDUCE LIGHTING QUALITY
+    Lighting.Brightness = 1
+    Lighting.GlobalShadows = false
+    Lighting.Technology = Enum.Technology.Compatibility
+    Lighting.ShadowSoftness = 0
+    Lighting.EnvironmentDiffuseScale = 0
+    Lighting.EnvironmentSpecularScale = 0
+    
+    -- 2. REDUCE RENDER QUALITY
+    
+    -- 3. REMOVE PARTICLE EFFECTS
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+            obj.Enabled = false
+        end
+    end
+    
+    -- 4. HIDE UNNECESSARY VISUAL PARTS
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Decal") or obj:IsA("Texture") then
+            if obj.Transparency < 1 then
+                obj.Transparency = 1
+            end
+        end
+    end
+    
+    -- 5. REDUCE GUI EFFECTS
+    local playerGui = player:WaitForChild("PlayerGui")
+    for _, gui in pairs(playerGui:GetDescendants()) do
+        if gui:IsA("UIGradient") or gui:IsA("UIStroke") or gui:IsA("DropShadowEffect") or gui:IsA("BlurEffect") then
+            gui.Enabled = false
+        end
+    end
+    
+    -- 6. REMOVE LIGHTING EFFECTS
+    for _, obj in pairs(Lighting:GetChildren()) do
+        if obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("ColorCorrectionEffect") or 
+           obj:IsA("SunRaysEffect") or obj:IsA("DepthOfFieldEffect") then
+            obj.Enabled = false
+        end
+    end
+    
+    print("🚀 Low Performance Mode: ENABLED")
+    print("✅ Disabled shadows, particles, textures, and visual effects")
+end
+
 
 -- ========== NEW DYNAMIC FETCHING SYSTEMS ==========
 
@@ -1410,6 +1454,14 @@ local LogTabDivider = LogTab:CreateDivider()
 local Label = LogTab:CreateLabel("+Fixed Bugs, +Auto Purchase from Merchant [lobby], + Auto Claim Battlepass [lobby], + Auto Claim Quests [lobby], +Auto Claim Milestones [lobby]") -- Title, Icon, Color, IgnoreTheme
 
 local LobbyTab = Window:CreateTab("Lobby", "tv") -- Title, Image
+
+local Button = LobbyTab:CreateButton({
+    Name = "LOW FPS MODE",
+    Callback = function(Value)
+        lowPerformanceEnabled = Value
+        enableLowPerformanceMode()
+    end,
+})
 
 local Button = LobbyTab:CreateButton({
     Name = "Redeem all valid codes",
