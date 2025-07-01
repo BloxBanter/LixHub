@@ -105,6 +105,7 @@ local availableStories = {}
 local availableRangerStages = {}
 local selectedStory
 local hasGameEnded = false
+local AutoUltimateEnabled
 
 local codes = { --////////////////////////////////////////////////////////////////UPDATE\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\--
     "SorryRaids",
@@ -1473,6 +1474,82 @@ local function resetUpgradeOrder()
     print("🔄 Reset upgrade order to slot 1")
 end
 
+local function getUnitsWithUltimates()
+   local unitsWithUltimates = {}
+   local success, result = pcall(function()
+      local agentFolder = workspace:WaitForChild("Agent", 5)
+      if not agentFolder then return {} end
+      
+      local unitFolder = agentFolder:WaitForChild("UnitT", 5)
+      if not unitFolder then return {} end
+      
+      -- Check each unit for ultimate ability
+      for _, part in pairs(unitFolder:GetChildren()) do
+         if part:IsA("BasePart") or part:IsA("Part") then
+            -- Check if unit has Info folder and ActiveAbility
+            local infoFolder = part:FindFirstChild("Info")
+            if infoFolder then
+               local activeAbility = infoFolder:FindFirstChild("ActiveAbility")
+               if activeAbility and activeAbility:IsA("StringValue") then
+                  -- If ActiveAbility has a value (not empty), unit has ultimate
+                  if activeAbility.Value ~= "" then
+                     table.insert(unitsWithUltimates, {
+                        part = part,
+                        abilityName = activeAbility.Value
+                     })
+                  end
+               end
+            end
+         end
+      end
+      
+      return unitsWithUltimates
+   end)
+   
+   if success then
+      return result
+   else
+      warn("Error getting units with ultimates:", result)
+      return {}
+   end
+end
+
+local function fireUltimateForUnit(unitData)
+   local success, result = pcall(function()
+      local args = { unitData.part.Name }
+      game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Ultimate"):FireServer(unpack(args))
+      print("Fired ultimate for unit:", unitData.part.Name, "- Ability:", unitData.abilityName)
+   end)
+   
+   if not success then
+      warn("Failed to fire ultimate for unit:", unitData.part.Name, "Error:", result)
+   end
+end
+
+local function autoUltimateLoop()
+    if isInLobby() then return end
+   while AutoUltimateEnabled do
+      local unitsWithUltimates = getUnitsWithUltimates()
+      
+      if #unitsWithUltimates > 0 then
+       -- print("Found", #unitsWithUltimates, "units with ultimates")
+         
+         -- Process each unit that has an ultimate
+         for _, unitData in pairs(unitsWithUltimates) do
+            if not AutoUltimateEnabled then break end -- Check if still enabled
+            
+            fireUltimateForUnit(unitData)
+            wait(0.1) -- Small delay between ultimates to prevent spam
+         end
+      else
+         print("No units with ultimates found")
+      end
+      
+      wait(1) -- Wait before checking again (increased since we're being more selective)
+   end
+end
+
+
 local function updateOverheadText()
     local success, err = pcall(function()
         local head = player.Character:WaitForChild("Head", 5)
@@ -2261,6 +2338,24 @@ local Slider6 = AutoPlayTab:CreateSlider({
    end,
 })
 
+local Toggle = GameTab:CreateToggle({
+   Name = "Auto Ultimate",
+   CurrentValue = false,
+   Flag = "AutoUltimate", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+      AutoUltimateEnabled = Value
+   end,
+})
+
+spawn(function()
+   while true do
+      if AutoUltimateEnabled then
+         autoUltimateLoop()
+      end
+      wait(0.5) -- Check every 0.5 seconds if we should start
+   end
+end)
+
 local WebhookTab = Window:CreateTab("Webhook", "bluetooth") -- Title, Image
 
 local WebhookLabel = WebhookTab:CreateLabel("Awaiting Webhook Input...", "cable")
@@ -2340,6 +2435,7 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("⏳ Webhook still on cooldown…")
         return
     end
+    hasSentWebhook = true
     gameRunning = false
     resetUpgradeOrder()
 
@@ -2375,7 +2471,6 @@ GameEndRemote.OnClientEvent:Connect(function()
 
     -- Send webhook with enhanced tracking
     sendWebhook("stage", nil, clearTimeStr, matchResult)
-     hasSentWebhook = true
     notify("✅ Webhook", "Stage completed and sent to Discord (Enhanced Tracking).")
 
     -- Reset reward capture for next game
