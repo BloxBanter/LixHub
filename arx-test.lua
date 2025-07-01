@@ -1459,20 +1459,13 @@ end)
 
 local LogTab = Window:CreateTab("Update Log", "scroll") -- Title, Image
 
-local LogTabSection = LogTab:CreateSection("30/06/2025")
+local LogTabSection = LogTab:CreateSection("01/07/2025")
 
 local LogTabDivider = LogTab:CreateDivider()
 
-local Label = LogTab:CreateLabel("+Fixed Bugs, +Auto Purchase from Merchant [lobby], + Auto Claim Battlepass [lobby], + Auto Claim Quests [lobby], +Auto Claim Milestones [lobby]") -- Title, Icon, Color, IgnoreTheme
+local Label = LogTab:CreateLabel("+Fixed Bugs, +Low Performance Mode [game]") -- Title, Icon, Color, IgnoreTheme
 
 local LobbyTab = Window:CreateTab("Lobby", "tv") -- Title, Image
-
-local Button = LobbyTab:CreateButton({
-    Name = "Low Performance Mode (Rejoin To Disable)",
-    Callback = function()
-        enableLowPerformanceMode()
-    end,
-})
 
 local Button = LobbyTab:CreateButton({
     Name = "Redeem all valid codes",
@@ -2013,6 +2006,13 @@ local Toggle = GameTab:CreateToggle({
    Callback = function(Value)
       autoReturnEnabled = Value
    end,
+})
+
+local Button = GameTab:CreateButton({
+    Name = "Low Performance Mode (Rejoin To Disable)",
+    Callback = function()
+        enableLowPerformanceMode()
+    end,
 })
 
 local AutoPlayTab = Window:CreateTab("AutoPlay", "joystick") -- Title, Image
