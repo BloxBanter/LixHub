@@ -98,7 +98,7 @@ local autoUpgradeEnabled
 local upgradeMethod = "Left to right until max"
 local unitLevelCaps = {9, 9, 9, 9, 9, 9}
 local upgradeTask = nil
-local UPGRADE_COOLDOWN = 0.5
+local UPGRADE_COOLDOWN = 1
 local currentUpgradeSlot = 1  -- Track which slot we're currently upgrading
 local gameRunning = false
 local autoAfkTeleportEnabled
@@ -106,6 +106,7 @@ local availableStories = {}
 local availableRangerStages = {}
 local hasGameEnded = false
 local AutoUltimateEnabled
+local lastUpgradeTime = 0
 
 local codes = { --////////////////////////////////////////////////////////////////UPDATE\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\--
     "SorryRaids",
@@ -1058,6 +1059,7 @@ local function upgradeUnit(unitName)
 
     if success then
         print("✅ Upgraded unit:", typeof(unitName) == "Instance" and unitName.Name or tostring(unitName))
+        lastUpgradeTime = tick()
         return true
     else
         warn("❌ Failed to upgrade unit:", typeof(unitName) == "Instance" and unitName.Name or tostring(unitName))
@@ -1065,7 +1067,12 @@ local function upgradeUnit(unitName)
     end
 end
 
+local function canUpgrade()
+    return tick() - lastUpgradeTime >= UPGRADE_COOLDOWN
+end
+
 local function leftToRightUpgrade()
+    if not canUpgrade() then return end
    -- print("🔄 Starting upgrade cycle from slot " .. currentUpgradeSlot)
     
     while autoUpgradeEnabled and gameRunning do
@@ -1097,10 +1104,10 @@ local function leftToRightUpgrade()
                 if currentMoney >= upgradeCost then
                    -- print("🔧 Upgrading unit:", unitNameStr)
                     if upgradeUnit(unitNameStr) then
-                        task.wait(UPGRADE_COOLDOWN)
+                        task.wait()
                     else
                       --  print("❌ Failed to upgrade, will retry")
-                        task.wait(1)
+                        task.wait()
                     end
                 else
                   --  print("⏳ Waiting for money to upgrade unit:", unitNameStr, "- STAYING on this slot")
