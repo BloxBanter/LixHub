@@ -1084,6 +1084,8 @@ local function leftToRightUpgrade()
                      upgradeUnit(unitNameStr)
                      task.wait(UPGRADE_COOLDOWN)
                      return
+                else
+                    task.wait(0.1)
                end
             end
         else
