@@ -119,6 +119,14 @@ local function isInLobby()
     return workspace:FindFirstChild("Lobby") ~= nil
 end
 
+--[[local function isInLobby()
+    if workspace:FindFirstChild("Lobby") then
+        return true
+    else
+        return false
+    end
+end--]]
+
 local function enableLowPerformanceMode()
     Lighting.Brightness = 1
     Lighting.GlobalShadows = false
@@ -441,28 +449,13 @@ local function hookRewardSystem()
 end
 
 local function buildRewardsText()
-    if hasNewRewards and capturedRewards.processed then
-        local rewardsText = table.concat(capturedRewards.processed, "\n")
-        local detectedRewards = {}
-
-        if capturedRewards.rawData then
-            for _, reward in pairs(capturedRewards.rawData) do
-                detectedRewards[reward.Name] = reward.Amount and reward.Amount.Value or 1
-            end
-        end
-
-        print("📡 Using remote event reward data (more accurate!)")
-        return rewardsText, detectedRewards, capturedRewards.units or {}
-    end
-
-    print("📁 Falling back to folder scanning method")
     local rewardsRoot = player:FindFirstChild("RewardsShow")
     if not rewardsRoot then
-        return "_No rewards found_", {}, {}
+        return "_No rewards found_", {}
     end
 
     local lines = {}
-    local detectedRewards = {}
+    local detectedRewards = {} -- Track what rewards we found
 
     for _, folder in ipairs(rewardsRoot:GetChildren()) do
         if folder:IsA("Folder") then
@@ -470,29 +463,37 @@ local function buildRewardsText()
                 if val:IsA("NumberValue") then
                     local itemName = val.Parent.Name
                     local amount = tostring(val.Value)
-
+                    
+                    -- Store the reward for unit checking
                     detectedRewards[itemName] = amount
 
+                    -- Get total amount from player data
                     local totalAmount = getTotalItemAmount(itemName)
                     local totalText = totalAmount and string.format(" [%s total]", totalAmount) or ""
 
-                    table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
+                    -- Display with colon for standard stuff like XP/Gold, and × for items
+                    if itemName:lower():match("exp") or itemName:lower():match("gold") then
+                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
+                    else
+                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
+                    end
                 end
             end
         end
     end
 
     if #lines == 0 then
-        return "_No reward values found_", {}, {}
+        return "_No reward values found_", {}
     end
 
-    return table.concat(lines, "\n"), detectedRewards, {}
+    return table.concat(lines, "\n"), detectedRewards
 end
 
 local function sendWebhook(messageType, rewards, clearTime, matchResult)
     if not ValidWebhook then return end
-
     local data
+
+    -- TEST WEBHOOK
     if messageType == "test" then
         data = {
             username = "LixHub Bot",
@@ -500,56 +501,82 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                 title = "📢 LixHub Notification",
                 description = "Test webhook sent successfully",
                 color = 0x5865F2,
-                footer = { text = "LixHub Auto Logger" },
+                footer = {
+                    text = "LixHub Auto Logger"
+                },
                 timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
             }}
         }
+
+    -- STAGE COMPLETION WEBHOOK
     elseif messageType == "stage" then
         local RewardsUI = player:WaitForChild("PlayerGui"):WaitForChild("HUD"):WaitForChild("InGame"):WaitForChild("Main"):WaitForChild("GameInfo")
+        local RewardsFolder = player:FindFirstChild("RewardsShow")
+
         local stageName = RewardsUI and RewardsUI:FindFirstChild("Stage") and RewardsUI.Stage.Label.Text or "Unknown Stage"
         local gameMode = RewardsUI and RewardsUI:FindFirstChild("Gamemode") and RewardsUI.Gamemode.Label.Text or "Unknown Time"
         local isWin = matchResult == "Victory"
         local plrlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value or ""
 
-        local rewardsText, detectedRewards, remoteUnits = buildRewardsText()
+        -- Build reward string and get detected rewards
+        local rewardsText, detectedRewards = buildRewardsText()
+        
+        -- Check for units by searching through all stage modules
         local foundUnits, matchedStage = findMatchingStageAndCheckUnits(detectedRewards)
-
-        local allUnits = {}
-        for _, unit in ipairs(foundUnits) do
-            table.insert(allUnits, unit)
-        end
-        for _, unit in ipairs(remoteUnits) do
-            if not table.find(allUnits, unit) then
-                table.insert(allUnits, unit)
-            end
-        end
-
-        local shouldPing = #allUnits > 0
+        local shouldPing = #foundUnits > 0
         local pingText = shouldPing and string.format("<@%s> 🎉 **SECRET UNIT OBTAINED!** 🎉", DISCORD_USER_ID) or ""
+
         local stageResult = stageName .. " (" .. gameMode .. ")" .. " - " .. matchResult
         local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
 
-        local description = shouldPing and (pingText .. "\n" .. stageResult) or stageResult
+        -- Build description with ping if unit found
+        local description = stageResult
+        if shouldPing then
+            description = pingText .. "\n" .. stageResult
+        end
 
         data = {
             username = "LixHub Bot",
-            content = shouldPing and pingText or nil,
+            content = shouldPing and pingText or nil, -- This ensures the ping works
             embeds = {{
                 title = shouldPing and "🌟 UNIT DROP! 🌟" or "🎯 Stage Finished!",
                 description = description,
-                color = shouldPing and 0xFFD700 or (isWin and 0x57F287 or 0xED4245),
+                color = shouldPing and 0xFFD700 or (isWin and 0x57F287 or 0xED4245), -- Gold for units, green for win, red for loss
                 fields = {
-                    { name = "👤 Player", value = "||" .. player.Name .. " [" .. plrlevel .. "]" .. "||", inline = true },
-                    { name = isWin and "✅ Won in:" or "❌ Lost after:", value = clearTime, inline = true },
-                    { name = "🏆 Rewards", value = rewardsText, inline = false },
-                    shouldPing and { name = "🌟 Units Obtained", value = table.concat(allUnits, ", "), inline = false } or nil,
-                    { name = "📈 Script Version", value = "v1.2.0 (Enhanced)", inline = true }
+                    {
+                        name = "👤 Player",
+                        value = "||" .. player.Name .. " [" .. plrlevel .. "]" .. "||",
+                        inline = true
+                    },
+                    {
+                        name = isWin and ("✅ Won in:") or ("❌ Lost after:"),
+                        value = clearTime,
+                        inline = true
+                    },
+                    {
+                        name = shouldPing and "🏆 Rewards" or "🏆 Rewards",
+                        value = rewardsText,
+                        inline = false
+                    },
+                    shouldPing and {
+                        name = "🌟 Units Obtained",
+                        value = table.concat(foundUnits, ", "),
+                        inline = false
+                    } or nil,
+                    {
+                        name = "📈 Script Version",
+                        value = "v1.1.0", -- Updated version
+                        inline = true
+                    }
                 },
-                footer = { text = "discord.gg/lixhub • Enhanced Tracking" },
+                footer = {
+                    text = "discord.gg/lixhub"
+                },
                 timestamp = timestamp
             }}
         }
 
+        -- Remove nil fields
         local filteredFields = {}
         for _, field in ipairs(data.embeds[1].fields) do
             if field then
@@ -557,10 +584,12 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
             end
         end
         data.embeds[1].fields = filteredFields
+
     else
-        return
+        return -- Unrecognized message type
     end
 
+    -- Encode & send webhook
     local payload = HttpService:JSONEncode(data)
     local requestFunc = (syn and syn.request) or (http and http.request) or request
     if requestFunc then
@@ -568,7 +597,9 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
             return requestFunc({
                 Url = ValidWebhook,
                 Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
                 Body = payload
             })
         end)
@@ -2084,12 +2115,12 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("⏳ Webhook still on cooldown…")
         return
     end
-    hasSentWebhook = true
+    
     gameRunning = false
     resetUpgradeOrder()
-
+    hasSentWebhook = true
     -- Wait a bit longer for both remote events and folder updates
-    task.wait(0.5)
+    task.wait(0.25)
     
     -- Clean up UI elements
     if player.PlayerGui:FindFirstChild("GameEndedAnimationUI") then
@@ -2101,12 +2132,12 @@ GameEndRemote.OnClientEvent:Connect(function()
     if player.PlayerGui:FindFirstChild("Visual") then
         player.PlayerGui:FindFirstChild("Visual"):Destroy()
     end
-    --[[if player:FindFirstChild("SavedToTeleport") then
+    if player:FindFirstChild("SavedToTeleport") then
         player:FindFirstChild("SavedToTeleport"):Destroy()
     end
     for _, child in pairs(ReplicatedStorage.Player_Data[player.Name].RangerStage:GetChildren()) do
         child:Destroy()
-    end--]]
+    end
 
     local clearTimeStr = "Unknown"
     if stageStartTime then
@@ -2121,10 +2152,6 @@ GameEndRemote.OnClientEvent:Connect(function()
     -- Send webhook with enhanced tracking
     sendWebhook("stage", nil, clearTimeStr, matchResult)
     notify("✅ Webhook", "Stage completed and sent to Discord (Enhanced Tracking).")
-
-    -- Reset reward capture for next game
-    hasNewRewards = false
-    capturedRewards = {}
 
     -- Rest of your auto-action logic remains the same...
     if pendingBossTicketReturn then
@@ -2178,17 +2205,5 @@ GameEndRemote.OnClientEvent:Connect(function()
     end
      hasGameEnded = true
 end)
-
--- Initialize the enhanced reward system
-print("🚀 Initializing Enhanced Reward Tracker...")
-local hookSuccess = hookRewardSystem()
-
-if hookSuccess then
-    print("✅ Enhanced reward tracking is now active!")
-    print("📡 Will capture rewards directly from game's remote events")
-    print("📁 Falls back to folder scanning if remote events fail")
-else
-    print("⚠️ Using fallback folder scanning method only")
-end
 
 Rayfield:LoadConfiguration()
