@@ -104,7 +104,6 @@ local hasGameEnded = false
 local AutoUltimateEnabled
 local retryAttempted = false
 local retryDebounce = false
-local gameEndTime = 0
 local retryLoopRunning = false
 local maxRetryAttempts = 20 -- Maximum number of retry attempts
 local currentRetryAttempt = 0
@@ -419,112 +418,6 @@ local function notify(title, content, duration)
         Image = "info",
     })
 end
-
---[[local function sendWebhook(messageType, rewards, clearTime, matchResult)
-    if not ValidWebhook then return end
-    local data
-
-    -- TEST WEBHOOK
-    if messageType == "test" then
-        data = {
-            username = "LixHub Bot",
-            embeds = {{
-                title = "📢 LixHub Notification",
-                description = "Test webhook sent successfully",
-                color = 0x5865F2,
-                footer = {
-                    text = "LixHub Auto Logger"
-                },
-                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-            }}
-        }
-
-    -- STAGE COMPLETION WEBHOOK
-    elseif messageType == "stage" then
-        local RewardsUI = player:WaitForChild("PlayerGui"):WaitForChild("HUD"):WaitForChild("InGame"):WaitForChild("Main"):WaitForChild("GameInfo")
-        local RewardsFolder = player:FindFirstChild("RewardsShow")
-
-        local stageName = RewardsUI and RewardsUI:FindFirstChild("Stage") and RewardsUI.Stage.Label.Text or "Unknown Stage"
-        local gameMode = RewardsUI and RewardsUI:FindFirstChild("Gamemode") and RewardsUI.Gamemode.Label.Text or "Unknown Time"
-         local isWin = matchResult == "Victory"
-         local plrlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value or ""
-
-        -- Build reward string
-        local rewardsText = ""
-        if RewardsFolder then
-            for _, rewardFolder in ipairs(RewardsFolder:GetChildren()) do
-                local amountValue = rewardFolder:FindFirstChildWhichIsA("NumberValue")
-                if amountValue then
-                    rewardsText = rewardsText .. string.format("+%s %s\n", tostring(amountValue.Value), rewardFolder.Name)
-                end
-            end
-        else
-            rewardsText = "No rewards found"
-        end
-
-        local stageResult = stageName .. " (" .. gameMode .. ")" .. " - " .. matchResult
-        local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-
-        data = {
-            username = "LixHub Bot",
-            embeds = {{
-                title = "🎯 Stage Finished!",
-                description = stageResult,
-                color = isWin and 0x57F287 or 0xED4245,
-                fields = {
-                    {
-                        name = "👤 Player",
-                        value = player.Name.." ["..plrlevel.."]",
-                        inline = true
-                    },
-                    {
-                        name = isWin and ("✅ Won in:") or ("❌ Lost after:"),
-                        value = clearTime,
-                        inline = true
-                    },
-                    {
-                        name = "🏆 Rewards",
-                        value = rewardsText,
-                        inline = false
-                    },
-                    {
-                        name = "📈 Script Version",
-                        value = "v1.0.0",
-                        inline = true
-                    }
-                },
-                footer = {
-                    text = "discord.gg/lixhub"
-                },
-                timestamp = timestamp
-            }}
-        }
-
-    else
-        return -- Unrecognized message type
-    end
-
-    -- Encode & send webhook
-    local payload = HttpService:JSONEncode(data)
-    local requestFunc = (syn and syn.request) or (http and http.request) or request
-    if requestFunc then
-        local success, result = pcall(function()
-            return requestFunc({
-                Url = ValidWebhook,
-                Method = "POST",
-                Headers = {
-                    ["Content-Type"] = "application/json"
-                },
-                Body = payload
-            })
-        end)
-        if not success then
-            warn("Webhook failed to send: " .. tostring(result))
-        end
-    else
-        warn("No compatible HTTP request method found.")
-    end
-end--]]
 
 local function findMatchingStageAndCheckUnits(detectedRewards)
     local foundUnits = {}
@@ -1758,10 +1651,6 @@ task.spawn(function()
     end
 end)
 
-local MerchantSection = LobbyTab:CreateSection("Auto Merchant")
-
-local MerchantDivider = LobbyTab:CreateDivider()
-
 local Toggle = LobbyTab:CreateToggle({
    Name = "Auto Purchase Merchant Items",
    CurrentValue = false,
@@ -1791,10 +1680,6 @@ task.spawn(function()
         task.wait(1)
     end
 end)
-
-local ClaimerSection = LobbyTab:CreateSection("Auto Claimer")
-
-local ClaimerDivider = LobbyTab:CreateDivider()
 
 local Toggle = LobbyTab:CreateToggle({
    Name = "Auto Claim Battlepass",
@@ -1843,10 +1728,6 @@ task.spawn(function()
         end
     end
 end)
-
-local OtherSection = LobbyTab:CreateSection("Other")
-
-local OtherDivider = LobbyTab:CreateDivider()
 
 local Button = LobbyTab:CreateButton({
     Name = "Redeem all valid codes",
@@ -2488,10 +2369,9 @@ local TestWebhookButton = WebhookTab:CreateButton({
 })
 local lastResultTick = 0
 local stageStartTime = nil
-local GameStartRemote = game.ReplicatedStorage.Remote.Replicate
 
 -- Stage start
-GameStartRemote.OnClientEvent:Connect(function(...)
+game.ReplicatedStorage.Remote.Replicate.OnClientEvent:Connect(function(...)
 	local args = {...}
 	if table.find(args, "Game_Start") then
           gameRunning = true
