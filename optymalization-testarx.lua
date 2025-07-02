@@ -2227,13 +2227,20 @@ end)
 local Toggle = GameTab:CreateToggle({
    Name = "Auto Retry",
    CurrentValue = false,
-   Flag = "AutoRetryToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Flag = "AutoRetryToggle",
    Callback = function(Value)
       autoRetryEnabled = Value
+      -- If auto retry is turned on after stage ended, attempt retry
+      if Value and hasGameEnded and not retryAttempted and not gameRunning then
+          print("🔁 Auto retry enabled after stage ended - attempting retry...")
+          task.delay(0.5, function()
+              attemptRetry()
+          end)
+      end
    end,
 })
 
-task.spawn(function()
+--[[task.spawn(function()
     while true do
         task.wait(1)
                 if autoRetryEnabled then
@@ -2247,7 +2254,7 @@ task.spawn(function()
             end
         end
     end
-end)
+end)--]]
 
 local Toggle = GameTab:CreateToggle({
    Name = "Auto Lobby",
