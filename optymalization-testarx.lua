@@ -102,6 +102,8 @@ local availableStories = {}
 local availableRangerStages = {}
 local hasGameEnded = false
 local AutoUltimateEnabled
+local retryAttempted = false
+local retryDebounce = false
 
 local codes = { --////////////////////////////////////////////////////////////////UPDATE\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\--
     "SorryRaids",
@@ -110,6 +112,41 @@ local codes = { --//////////////////////////////////////////////////////////////
     "Sorry4Delays",
     "BOSSTAKEOVER",
 }
+
+local function attemptRetry()
+    if retryDebounce then
+        print("🔁 Retry already in progress, skipping...")
+        return
+    end
+    
+    retryDebounce = true
+    retryAttempted = true
+    
+    print("🔁 Attempting auto-retry...")
+    
+    -- Use pcall to handle any errors
+    local success, err = pcall(function()
+        game:GetService("ReplicatedStorage")
+            :WaitForChild("Remote")
+            :WaitForChild("Server")
+            :WaitForChild("OnGame")
+            :WaitForChild("Voting")
+            :WaitForChild("VoteRetry"):FireServer()
+    end)
+    
+    if success then
+        notify("Auto Retry", "Successfully voted to retry!")
+        print("✅ Retry vote sent successfully")
+    else
+        notify("Auto Retry Error", "Failed to send retry vote: " .. tostring(err))
+        print("❌ Retry failed:", err)
+    end
+    
+    -- Reset debounce after a delay
+    task.delay(3, function()
+        retryDebounce = false
+    end)
+end
 
 local function isInLobby()
     return workspace:FindFirstChild("Lobby") ~= nil
@@ -2410,12 +2447,16 @@ GameStartRemote.OnClientEvent:Connect(function(...)
           gameRunning = true
     resetUpgradeOrder() -- Reset to slot 1 every time a new game starts
     
+
+retryAttempted = false
+        retryDebounce = false
+        hasGameEnded = false
+
     if autoUpgradeEnabled then
         notify("Game Started", "Auto upgrade restarted!")
     end
 
         hasSentWebhook = false
-        hasGameEnded = false
 		stageStartTime = tick()
 		print("🟢 Stage started at", stageStartTime)
 	end
@@ -2443,6 +2484,7 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("⏳ Webhook still on cooldown…")
         return
     end
+    hasGameEnded = true
     hasSentWebhook = true
     gameRunning = false
     resetUpgradeOrder()
@@ -2485,48 +2527,50 @@ GameEndRemote.OnClientEvent:Connect(function()
     hasNewRewards = false
     capturedRewards = {}
 
+    local actionTaken = false
+
     -- Rest of your auto-action logic remains the same...
-    if pendingBossTicketReturn then
+    if pendingBossTicketReturn and not actionTaken then
         print("🎫 Boss Attack tickets are available - returning to lobby")
         notify("Boss Tickets", "Tickets available - returning to lobby")
         pendingBossTicketReturn = false
+        actionTaken = true
         task.delay(2, function()
             TeleportService:Teleport(72829404259339, player)
         end)
         return
     end
 
-    if pendingChallengeReturn then
+    if pendingChallengeReturn and not actionTaken then
         print("🏠 Challenge changed - returning to lobby instead of retry/next")
         notify("Challenge Return", "New challenge detected - returning to lobby")
         pendingChallengeReturn = false
+        actionTaken = true
         task.delay(2, function()
             TeleportService:Teleport(72829404259339, player)
         end)
         return
     end
 
-    if autoRetryEnabled then
+    if autoRetryEnabled and not actionTaken and not retryAttempted then
         print("🔁 Auto-retrying stage...")
-        task.delay(2, function()
-            game:GetService("ReplicatedStorage")
-                :WaitForChild("Remote")
-                :WaitForChild("Server")
-                :WaitForChild("OnGame")
-                :WaitForChild("Voting")
-                :WaitForChild("VoteRetry"):FireServer()
+        actionTaken = true
+        task.delay(1.5, function()
+            attemptRetry()
         end)
     end
 
-    if autoReturnEnabled then
+    if autoReturnEnabled and not actionTaken then
         print("🏠 Auto returning to lobby by teleporting...")
+        actionTaken = true
         task.delay(2, function()
             TeleportService:Teleport(72829404259339, player)
         end)
     end
 
-    if autoNextEnabled then
+    if autoNextEnabled and not actionTaken then
         print("🏠 Auto starting next stage")
+        actionTaken = true
         task.delay(2, function()
              game:GetService("ReplicatedStorage"):WaitForChild("Remote")
              :WaitForChild("Server")
@@ -2535,7 +2579,9 @@ GameEndRemote.OnClientEvent:Connect(function()
              :WaitForChild("VoteNext"):FireServer()
         end)
     end
-     hasGameEnded = true
+     if not actionTaken then
+        print("ℹ️ No auto actions enabled or conditions met")
+    end
 end)
 
 -- Initialize the enhanced reward system
