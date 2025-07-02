@@ -1066,34 +1066,61 @@ local function upgradeUnit(unitName)
 end
 
 local function leftToRightUpgrade()
+   -- print("🔄 Starting upgrade cycle from slot " .. currentUpgradeSlot)
+    
     while autoUpgradeEnabled and gameRunning do
         local unitName = getUnitNameFromSlot(currentUpgradeSlot)
+        local unitNameStr = unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) or "nil"
+        local maxLevel = unitLevelCaps[currentUpgradeSlot] or 9
+        
+       -- print("🔍 Checking slot " .. currentUpgradeSlot .. " unit:", unitNameStr)
 
-        if unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) ~= "" then
-            local unitNameStr = typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)
-            local maxLevel = unitLevelCaps[currentUpgradeSlot] or 9
+        if unitName and unitNameStr ~= "" and unitNameStr ~= "nil" then
             local currentLevel = getCurrentUpgradeLevel(unitNameStr)
 
             if currentLevel == "MAX" or tonumber(currentLevel) >= maxLevel then
                 print("🏆 Unit " .. unitNameStr .. " reached max level, moving to next slot")
                 currentUpgradeSlot = currentUpgradeSlot + 1
-                if currentUpgradeSlot > 6 then currentUpgradeSlot = 1 end
-                task.wait(0.05) -- shorter delay when just moving to next
+                
+                -- If we've checked all slots, restart from slot 1
+                if currentUpgradeSlot > 6 then
+                    currentUpgradeSlot = 1
+                   -- print("🔄 All slots checked, restarting from slot 1")
+                end
             else
-                if getCurrentMoney() >= getUpgradeCost(unitNameStr) then
-                     upgradeUnit(unitNameStr)
-                     task.wait(UPGRADE_COOLDOWN)
-                     return
+                -- Try to upgrade current unit - STRICT ORDER: Wait for money!
+                local currentMoney = getCurrentMoney()
+                local upgradeCost = getUpgradeCost(unitNameStr)
+                
+               -- print("📊 Unit '" .. unitNameStr .. "' - Level:", tostring(currentLevel), "Max:", maxLevel, "Cost:", upgradeCost, "Money:", currentMoney)
+
+                if currentMoney >= upgradeCost then
+                   -- print("🔧 Upgrading unit:", unitNameStr)
+                    if upgradeUnit(unitNameStr) then
+                        task.wait(UPGRADE_COOLDOWN)
+                    else
+                      --  print("❌ Failed to upgrade, will retry")
+                        task.wait(1)
+                    end
                 else
-                    task.wait(0.1)
-               end
+                  --  print("⏳ Waiting for money to upgrade unit:", unitNameStr, "- STAYING on this slot")
+                    
+                end
             end
         else
+           -- print("⚠️ No valid unit in slot " .. currentUpgradeSlot .. ", moving to next")
             currentUpgradeSlot = currentUpgradeSlot + 1
-            if currentUpgradeSlot > 6 then currentUpgradeSlot = 1 end
-            task.wait(0.05) -- short delay when skipping empty slot
+            
+            if currentUpgradeSlot > 6 then
+                currentUpgradeSlot = 1
+               -- print("🔄 All slots checked, restarting from slot 1")
+            end
         end
+
+        task.wait(0.5) 
     end
+    
+   -- print("🛑 Upgrade cycle ended")
 end
 
 local function startAutoUpgrade()
