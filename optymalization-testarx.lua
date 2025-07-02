@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - Anime Rangers X - optimization",
-   Icon = "apple", -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Name = "LixHub - Anime Rangers X",
+   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Loading for Anime Rangers X",
    LoadingSubtitle = "by Lix",
    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
@@ -48,10 +48,6 @@ local StartGameRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("S
 local merchantRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("Merchant")
  local PlayEvent = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
 local challengeFolder = game:GetService("ReplicatedStorage"):WaitForChild("Gameplay"):WaitForChild("Game"):WaitForChild("Challenge")
-local ServerSettings = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event")
-local PlayRoomEvent = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
-local UnitsRemote = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Upgrade")
-local GameWorldInfo = ReplicatedStorage.Shared.Info.GameWorld
 local itemsFolder = challengeFolder:WaitForChild("Items")
 local AFKChamberUI = player:WaitForChild("PlayerGui"):WaitForChild("AFKChamber")
 local STAGE_MODULES_FOLDER = game.ReplicatedStorage.Shared.Info.GameWorld.Levels -- Adjust path
@@ -98,7 +94,7 @@ local autoUpgradeEnabled
 local upgradeMethod = "Left to right until max"
 local unitLevelCaps = {9, 9, 9, 9, 9, 9}
 local upgradeTask = nil
-local UPGRADE_COOLDOWN = 1
+local UPGRADE_COOLDOWN = 0.5
 local currentUpgradeSlot = 1  -- Track which slot we're currently upgrading
 local gameRunning = false
 local autoAfkTeleportEnabled
@@ -106,7 +102,6 @@ local availableStories = {}
 local availableRangerStages = {}
 local hasGameEnded = false
 local AutoUltimateEnabled
-local lastUpgradeTime = 0
 
 local codes = { --////////////////////////////////////////////////////////////////UPDATE\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\--
     "SorryRaids",
@@ -120,62 +115,75 @@ local function isInLobby()
     return workspace:FindFirstChild("Lobby") ~= nil
 end
 
---[[local function isInLobby()
-    if workspace:FindFirstChild("Lobby") then
-        return true
-    else
-        return false
-    end
-end--]]
-
 local function enableLowPerformanceMode()
+    -- 1. REDUCE LIGHTING QUALITY
     Lighting.Brightness = 1
     Lighting.GlobalShadows = false
     Lighting.Technology = Enum.Technology.Compatibility
     Lighting.ShadowSoftness = 0
     Lighting.EnvironmentDiffuseScale = 0
     Lighting.EnvironmentSpecularScale = 0
+    
+    -- 2. REDUCE RENDER QUALITY
+    
+    -- 3. REMOVE PARTICLE EFFECTS
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
             obj.Enabled = false
-        elseif obj:IsA("Decal") or obj:IsA("Texture") then
+        end
+    end
+    
+    -- 4. HIDE UNNECESSARY VISUAL PARTS
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Decal") or obj:IsA("Texture") then
             if obj.Transparency < 1 then
                 obj.Transparency = 1
             end
         end
     end
+    
+    -- 5. REDUCE GUI EFFECTS
     local playerGui = player:WaitForChild("PlayerGui")
     for _, gui in pairs(playerGui:GetDescendants()) do
         if gui:IsA("UIGradient") or gui:IsA("UIStroke") or gui:IsA("DropShadowEffect") or gui:IsA("BlurEffect") then
             gui.Enabled = false
         end
     end
+    
+    -- 6. REMOVE LIGHTING EFFECTS
     for _, obj in pairs(Lighting:GetChildren()) do
         if obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("ColorCorrectionEffect") or 
            obj:IsA("SunRaysEffect") or obj:IsA("DepthOfFieldEffect") then
             obj.Enabled = false
         end
     end
-    local args = {}
-    args = {"Abilities VFX", false}
-    ServerSettings:FireServer(unpack(args))
-    args = {"Hide Cosmetic", true}
-    ServerSettings:FireServer(unpack(args))
-    args = {"Low Graphic Quality", true}
-    ServerSettings:FireServer(unpack(args))
-    args = {"HeadBar", false}
-    ServerSettings:FireServer(unpack(args))
-    args = {"Display Players Units", false}
-    ServerSettings:FireServer(unpack(args))
-    args = {"DisibleGachaChat", true}
-    ServerSettings:FireServer(unpack(args))
-    args = {"DisibleDamageText", true}
-    ServerSettings:FireServer(unpack(args))
+local args = {"Abilities VFX",false}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"Hide Cosmetic",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"Low Graphic Quality",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"HeadBar",false}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"Display Players Units",false}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"DisibleGachaChat",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+local args = {"DisibleDamageText",true}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event"):FireServer(unpack(args))
+
+    print("🚀 Low Performance Mode: ENABLED")
+    print("✅ Disabled shadows, particles, textures, and visual effects")
 end
+
+
+-- ========== NEW DYNAMIC FETCHING SYSTEMS ==========
+
+-- Story Fetching System
 local function fetchStoryData()
     local storyData = {}
-    local worldDisplayNameMap = {}
-    local folder = GameWorldInfo:WaitForChild("World")
+       local worldDisplayNameMap = {}
+    local folder = game.ReplicatedStorage.Shared.Info.GameWorld:WaitForChild("World")
     
     for _, moduleScript in ipairs(folder:GetChildren()) do
         if moduleScript:IsA("ModuleScript") then
@@ -207,8 +215,12 @@ local function fetchStoryData()
     
     return storyData, worldDisplayNameMap
 end
+
+-- Ranger Stage Fetching System
 local function fetchRangerStageData(storyData)
-    local folder = GameWorldInfo:WaitForChild("Levels")
+    local folder = game.ReplicatedStorage.Shared.Info.GameWorld:WaitForChild("Levels")
+    
+    -- World priority table (from your script)
     local worldPriority = {
         ["OnePiece"] = 1,
         ["Namek"] = 2,
@@ -219,32 +231,42 @@ local function fetchRangerStageData(storyData)
         ["JojoPart1"] = 7,
     }
 
-    local worldDisplayNames = {}
+     local worldDisplayNames = {}
     for _, story in ipairs(storyData) do
         worldDisplayNames[story.ModuleName] = story.SeriesName
+         --print("SHUTMapping:", story.ModuleName, "->", story.SeriesName)
     end
-
+    
+    -- Storage for ranger stages by world
     local worldStages = {}
-
+    
+    -- Scan ModuleScripts
     for _, moduleScript in ipairs(folder:GetChildren()) do
         if moduleScript:IsA("ModuleScript") then
-            local success, data = pcall(require, moduleScript)
+            local success, data = pcall(function()
+                return require(moduleScript)
+            end)
 
             if success and typeof(data) == "table" then
                 for seriesName, chapters in pairs(data) do
                     if typeof(chapters) == "table" then
                         for chapterKey, chapterData in pairs(chapters) do
-                            if typeof(chapterData) == "table" and chapterData.Wave and string.find(chapterData.Wave, "RangerStage") then
-                                local worldName = chapterData.World or "UnknownWorld"
-                                worldStages[worldName] = worldStages[worldName] or {}
-                                local displayWorldName = worldDisplayNames[worldName] or worldName
-                                table.insert(worldStages[worldName], {
-                                    Series = seriesName,
-                                    Chapter = chapterKey,
-                                    Wave = chapterData.Wave,
-                                    LayoutOrder = chapterData.LayoutOrder or math.huge,
-                                    DisplayName = displayWorldName .. " - " .. (chapterData.Wave:match("RangerStage(%d+)") or chapterData.Wave)
-                                })
+                            if typeof(chapterData) == "table" and chapterData.Wave then
+                                if string.find(chapterData.Wave, "RangerStage") then
+                                    local worldName = chapterData.World or "UnknownWorld"
+                                   -- print("📝 Found worldName:", worldName)
+                                    worldStages[worldName] = worldStages[worldName] or {}
+                                         local displayWorldName = worldDisplayNames[worldName] or worldName -- fallback to internal if not found
+                                    table.insert(worldStages[worldName], {
+                                        Series = seriesName,
+                                        Chapter = chapterKey,
+                                        Wave = chapterData.Wave,
+                                        LayoutOrder = chapterData.LayoutOrder or math.huge,
+                                      --  DisplayName = worldName .. " - " .. chapterData.Wave:match("RangerStage(%d+)") or chapterData.Wave
+                                        DisplayName = displayWorldName .. " - " .. (chapterData.Wave:match("RangerStage(%d+)") or chapterData.Wave)
+                                        
+                                    })
+                                end
                             end
                         end
                     end
@@ -254,25 +276,34 @@ local function fetchRangerStageData(storyData)
             end
         end
     end
-
+    -- Prepare worlds and assign priority
     local worldOrder = {}
     local rangerStages = {}
-
+    
     for worldName, stages in pairs(worldStages) do
+        -- Sort each world's stages by LayoutOrder
         table.sort(stages, function(a, b)
             return a.LayoutOrder < b.LayoutOrder
         end)
+
+        -- Get priority (if not found, assign a very large number to push it to the bottom)
         local priority = worldPriority[worldName] or 1e6
+
         table.insert(worldOrder, {World = worldName, Priority = priority, Stages = stages})
     end
 
+    -- Sort worlds by priority
     table.sort(worldOrder, function(a, b)
         return a.Priority < b.Priority
     end)
 
+    -- Build final ranger stages list
     for _, worldInfo in ipairs(worldOrder) do
         local worldName = worldInfo.World
+        --print("==== World: " .. worldName .. " ====")
+
         for _, stage in ipairs(worldInfo.Stages) do
+            --print("Found Ranger Stage:", stage.Wave)
             table.insert(rangerStages, {
                 RawName = stage.Wave,
                 DisplayName = stage.DisplayName,
@@ -283,9 +314,12 @@ local function fetchRangerStageData(storyData)
             })
         end
     end
-
+    
     return rangerStages
 end
+
+
+
 local function notify(title, content, duration)
     Rayfield:Notify({
         Title = title or "Notice",
@@ -294,203 +328,8 @@ local function notify(title, content, duration)
         Image = "info",
     })
 end
-local function findMatchingStageAndCheckUnits(detectedRewards)
-    local foundUnits = {}
-    local matchedStage = nil
 
-    local success, stageData
-
-    for _, moduleScript in ipairs(STAGE_MODULES_FOLDER:GetChildren()) do
-        if moduleScript:IsA("ModuleScript") then
-            success, stageData = pcall(require, moduleScript)
-
-            if success and stageData then
-                for worldName, worldData in pairs(stageData) do
-                    if type(worldData) == "table" then
-                        for stageName, stage in pairs(worldData) do
-                            if type(stage) == "table" and stage.Items then
-                                local possibleRewards = {}
-                                for _, item in ipairs(stage.Items) do
-                                    possibleRewards[item.Name] = item
-                                end
-
-                                local matches, totalDetected = 0, 0
-                                for rewardName, _ in pairs(detectedRewards) do
-                                    if not (rewardName:lower():match("exp") or rewardName:lower():match("gold")) then
-                                        totalDetected = totalDetected + 1
-                                        if possibleRewards[rewardName] then
-                                            matches = matches + 1
-                                        end
-                                    end
-                                end
-
-                                if matches > 0 and (totalDetected == 0 or matches / totalDetected >= 0.5) then
-                                    matchedStage = {
-                                        module = moduleScript.Name,
-                                        world = worldName,
-                                        stage = stageName,
-                                        data = stage
-                                    }
-
-                                    for rewardName, _ in pairs(detectedRewards) do
-                                        local rewardInfo = possibleRewards[rewardName]
-                                        if rewardInfo and rewardInfo.Type == "Unit" then
-                                            table.insert(foundUnits, rewardName)
-                                        end
-                                    end
-
-                                    if #foundUnits > 0 then
-                                        return foundUnits, matchedStage
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return foundUnits, matchedStage
-end
-local function getTotalItemAmount(itemName)
-    local playerData = ReplicatedStorage:FindFirstChild("Player_Data")[player.Name]
-    if not playerData then return nil end
-    
-    local itemsFolder = playerData:FindFirstChild("Items")
-    if not itemsFolder then return nil end
-    
-    local itemFolder = itemsFolder:FindFirstChild(itemName)
-    if not itemFolder then return nil end
-    
-    local amountValue = itemFolder:FindFirstChild("Amount")
-    if not amountValue then return nil end
-    
-    return tostring(amountValue.Value)
-end
-
-
-local function processRemoteRewards(rewardData)
-    local rewards = {}
-    local detectedUnits = {}
-    if not rewardData or not rewardData[1] then
-        return rewards, detectedUnits
-    end
-
-    local GetData = require(ReplicatedStorage.Shared.GetData)
-
-    for _, reward in pairs(rewardData) do
-        local itemName = reward.Name
-        local amount = reward.Amount and reward.Amount.Value or 1
-
-        local isUnit = false
-
-        pcall(function()
-            if GetData.GetUnitStats(itemName) then
-                isUnit = true
-                table.insert(detectedUnits, itemName)
-            elseif GetData.GetItemStats(itemName) then
-                -- Only checking item validity, no action needed
-            end
-        end)
-
-        local totalAmount = getTotalItemAmount(itemName)
-        local totalText = totalAmount and string.format(" [%s total]", totalAmount) or ""
-
-        local rewardText
-        if isUnit then
-            rewardText = string.format("🌟 %s x%d (UNIT!)%s", itemName, amount, totalText)
-        else
-            rewardText = string.format("+ %s %s%s", amount, itemName, totalText)
-        end
-
-        table.insert(rewards, rewardText)
-        capturedRewards[itemName] = amount
-    end
-
-    return rewards, detectedUnits
-end
-local function hookRewardSystem()
-    if isInLobby() then return end
-
-    local success, err = pcall(function()
-        local gameEndedRemote = ReplicatedStorage.Remote.Client.UI.GameEndedUI
-
-        gameEndedRemote.OnClientEvent:Connect(function(eventType, data)
-            if eventType == "Rewards - Items" then
-                print("🎯 Intercepted reward data from game!")
-                capturedRewards = {}
-                hasNewRewards = true
-
-                local rewardLines, detectedUnits = processRemoteRewards(data)
-
-                capturedRewards.processed = rewardLines
-                capturedRewards.units = detectedUnits
-                capturedRewards.rawData = data
-
-                print("📦 Captured Rewards:")
-                for _, line in ipairs(rewardLines) do
-                    print("  " .. line)
-                end
-
-                if #detectedUnits > 0 then
-                    print("🌟 UNITS DETECTED: " .. table.concat(detectedUnits, ", "))
-                end
-            end
-        end)
-    end)
-
-    if not success then
-        warn("⚠️ Failed to hook reward system: " .. tostring(err))
-        return false
-    end
-
-    print("✅ Successfully hooked into game reward system!")
-    return true
-end
-
-local function buildRewardsText()
-    local rewardsRoot = player:FindFirstChild("RewardsShow")
-    if not rewardsRoot then
-        return "_No rewards found_", {}
-    end
-
-    local lines = {}
-    local detectedRewards = {} -- Track what rewards we found
-
-    for _, folder in ipairs(rewardsRoot:GetChildren()) do
-        if folder:IsA("Folder") then
-            for _, val in ipairs(folder:GetChildren()) do
-                if val:IsA("NumberValue") then
-                    local itemName = val.Parent.Name
-                    local amount = tostring(val.Value)
-                    
-                    -- Store the reward for unit checking
-                    detectedRewards[itemName] = amount
-
-                    -- Get total amount from player data
-                    local totalAmount = getTotalItemAmount(itemName)
-                    local totalText = totalAmount and string.format(" [%s total]", totalAmount) or ""
-
-                    -- Display with colon for standard stuff like XP/Gold, and × for items
-                    if itemName:lower():match("exp") or itemName:lower():match("gold") then
-                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
-                    else
-                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
-                    end
-                end
-            end
-        end
-    end
-
-    if #lines == 0 then
-        return "_No reward values found_", {}
-    end
-
-    return table.concat(lines, "\n"), detectedRewards
-end
-
-local function sendWebhook(messageType, rewards, clearTime, matchResult)
+--[[local function sendWebhook(messageType, rewards, clearTime, matchResult)
     if not ValidWebhook then return end
     local data
 
@@ -516,37 +355,35 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
 
         local stageName = RewardsUI and RewardsUI:FindFirstChild("Stage") and RewardsUI.Stage.Label.Text or "Unknown Stage"
         local gameMode = RewardsUI and RewardsUI:FindFirstChild("Gamemode") and RewardsUI.Gamemode.Label.Text or "Unknown Time"
-        local isWin = matchResult == "Victory"
-        local plrlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value or ""
+         local isWin = matchResult == "Victory"
+         local plrlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value or ""
 
-        -- Build reward string and get detected rewards
-        local rewardsText, detectedRewards = buildRewardsText()
-        
-        -- Check for units by searching through all stage modules
-        local foundUnits, matchedStage = findMatchingStageAndCheckUnits(detectedRewards)
-        local shouldPing = #foundUnits > 0
-        local pingText = shouldPing and string.format("<@%s> 🎉 **SECRET UNIT OBTAINED!** 🎉", DISCORD_USER_ID) or ""
+        -- Build reward string
+        local rewardsText = ""
+        if RewardsFolder then
+            for _, rewardFolder in ipairs(RewardsFolder:GetChildren()) do
+                local amountValue = rewardFolder:FindFirstChildWhichIsA("NumberValue")
+                if amountValue then
+                    rewardsText = rewardsText .. string.format("+%s %s\n", tostring(amountValue.Value), rewardFolder.Name)
+                end
+            end
+        else
+            rewardsText = "No rewards found"
+        end
 
         local stageResult = stageName .. " (" .. gameMode .. ")" .. " - " .. matchResult
         local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
 
-        -- Build description with ping if unit found
-        local description = stageResult
-        if shouldPing then
-            description = pingText .. "\n" .. stageResult
-        end
-
         data = {
             username = "LixHub Bot",
-            content = shouldPing and pingText or nil, -- This ensures the ping works
             embeds = {{
-                title = shouldPing and "🌟 UNIT DROP! 🌟" or "🎯 Stage Finished!",
-                description = description,
-                color = shouldPing and 0xFFD700 or (isWin and 0x57F287 or 0xED4245), -- Gold for units, green for win, red for loss
+                title = "🎯 Stage Finished!",
+                description = stageResult,
+                color = isWin and 0x57F287 or 0xED4245,
                 fields = {
                     {
                         name = "👤 Player",
-                        value = "||" .. player.Name .. " [" .. plrlevel .. "]" .. "||",
+                        value = player.Name.." ["..plrlevel.."]",
                         inline = true
                     },
                     {
@@ -555,18 +392,13 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                         inline = true
                     },
                     {
-                        name = shouldPing and "🏆 Rewards" or "🏆 Rewards",
+                        name = "🏆 Rewards",
                         value = rewardsText,
                         inline = false
                     },
-                    shouldPing and {
-                        name = "🌟 Units Obtained",
-                        value = table.concat(foundUnits, ", "),
-                        inline = false
-                    } or nil,
                     {
                         name = "📈 Script Version",
-                        value = "v1.1.0", -- Updated version
+                        value = "v1.0.0",
                         inline = true
                     }
                 },
@@ -576,15 +408,6 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                 timestamp = timestamp
             }}
         }
-
-        -- Remove nil fields
-        local filteredFields = {}
-        for _, field in ipairs(data.embeds[1].fields) do
-            if field then
-                table.insert(filteredFields, field)
-            end
-        end
-        data.embeds[1].fields = filteredFields
 
     else
         return -- Unrecognized message type
@@ -610,28 +433,393 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
     else
         warn("No compatible HTTP request method found.")
     end
+end--]]
+
+local function findMatchingStageAndCheckUnits(detectedRewards)
+    local foundUnits = {}
+    local matchedStage = nil
+    
+    -- Get all ModuleScripts in the stages folder
+    for _, moduleScript in ipairs(STAGE_MODULES_FOLDER:GetChildren()) do
+        if moduleScript:IsA("ModuleScript") then
+            local success, stageData = pcall(function()
+                return require(moduleScript)
+            end)
+            
+            if success and stageData then
+                -- Check each world in the module
+                for worldName, worldData in pairs(stageData) do
+                    if type(worldData) == "table" then
+                        -- Check each stage in the world
+                        for stageName, stage in pairs(worldData) do
+                            if type(stage) == "table" and stage.Items then
+                                -- Create lookup table for this stage's possible rewards
+                                local possibleRewards = {}
+                                for _, item in ipairs(stage.Items) do
+                                    possibleRewards[item.Name] = item
+                                end
+                                
+                                -- Check if our detected rewards match this stage
+                                local matches = 0
+                                local totalDetected = 0
+                                
+                                for rewardName, _ in pairs(detectedRewards) do
+                                    -- Skip EXP/Gold as they're common to all stages
+                                    if not (rewardName:lower():match("exp") or rewardName:lower():match("gold")) then
+                                        totalDetected = totalDetected + 1
+                                        if possibleRewards[rewardName] then
+                                            matches = matches + 1
+                                        end
+                                    end
+                                end
+                                
+                                -- If we have matches and they represent a good portion of our rewards
+                                if matches > 0 and (totalDetected == 0 or matches / totalDetected >= 0.5) then
+                                    matchedStage = {
+                                        module = moduleScript.Name,
+                                        world = worldName,
+                                        stage = stageName,
+                                        data = stage
+                                    }
+                                    
+                                    -- Check for units in this matched stage
+                                    for rewardName, _ in pairs(detectedRewards) do
+                                        local rewardInfo = possibleRewards[rewardName]
+                                        if rewardInfo and rewardInfo.Type == "Unit" then
+                                            table.insert(foundUnits, rewardName)
+                                        end
+                                    end
+                                    
+                                    -- If we found units, we can return early
+                                    if #foundUnits > 0 then
+                                        return foundUnits, matchedStage
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return foundUnits, matchedStage
 end
 
-local function countPartsOnPath(folder, pathFolder)
-    local count = 0
-    local startPos = pathFolder["1"].Position
-    local endPos = pathFolder["2"].Position
-    local totalDist = (startPos - endPos).Magnitude
-    for _, part in ipairs(folder:GetChildren()) do
-        if part:IsA("BasePart") and part:FindFirstChildOfClass("Humanoid") then
-            local distSum = (part.Position - startPos).Magnitude + (part.Position - endPos).Magnitude
-            if distSum <= totalDist + 15 then
-                count += 1
+local function getTotalItemAmount(itemName)
+    local playerData = ReplicatedStorage:FindFirstChild("Player_Data")[player.Name]
+    if not playerData then return nil end
+    
+    local itemsFolder = playerData:FindFirstChild("Items")
+    if not itemsFolder then return nil end
+    
+    local itemFolder = itemsFolder:FindFirstChild(itemName)
+    if not itemFolder then return nil end
+    
+    local amountValue = itemFolder:FindFirstChild("Amount")
+    if not amountValue then return nil end
+    
+    return tostring(amountValue.Value)
+end
+
+local function processRemoteRewards(rewardData)
+    local rewards = {}
+    local detectedUnits = {}
+    
+    if not rewardData or not rewardData[1] then
+        return rewards, detectedUnits
+    end
+    
+    -- Process each reward from the remote event
+    for _, reward in pairs(rewardData) do
+        local itemName = reward.Name
+        local amount = reward.Amount and reward.Amount.Value or 1
+        
+        -- Check if it's a unit using the same method as the game
+        local GetData = ReplicatedStorage.Shared.GetData
+        local isUnit = false
+        local isItem = false
+        
+        -- Try to determine if it's a unit or item (safely)
+        pcall(function()
+            if require(GetData).GetUnitStats(itemName) then
+                isUnit = true
+                table.insert(detectedUnits, itemName)
+            elseif require(GetData).GetItemStats(itemName) then
+                isItem = true
+            end
+        end)
+        
+        -- Get total amount from player data
+        local totalAmount = getTotalItemAmount(itemName)
+        local totalText = totalAmount and string.format(" [%s total]", totalAmount) or ""
+        
+        -- Format the reward text
+        local rewardText
+        if isUnit then
+            rewardText = string.format("🌟 %s x%d (UNIT!)%s", itemName, amount, totalText)
+        elseif itemName:lower():match("exp") or itemName:lower():match("gold") then
+            rewardText = string.format("+ %s %s%s", amount, itemName, totalText)
+        else
+            rewardText = string.format("+ %s %s%s", amount, itemName, totalText)
+        end
+        
+        table.insert(rewards, rewardText)
+        
+        -- Store for unit checking
+        capturedRewards[itemName] = amount
+    end
+    
+    return rewards, detectedUnits
+end
+
+local function hookRewardSystem()
+    if isInLobby() then return end
+    local success, err = pcall(function()
+        local gameEndedRemote = ReplicatedStorage.Remote.Client.UI.GameEndedUI
+        
+        -- Hook into the reward processing
+        gameEndedRemote.OnClientEvent:Connect(function(eventType, data)
+            if eventType == "Rewards - Items" then
+                print("🎯 Intercepted reward data from game!")
+                capturedRewards = {}
+                hasNewRewards = true
+                
+                -- Process the reward data immediately
+                local rewardLines, detectedUnits = processRemoteRewards(data)
+                
+                -- Store the processed rewards
+                capturedRewards.processed = rewardLines
+                capturedRewards.units = detectedUnits
+                capturedRewards.rawData = data
+                
+                -- Debug output
+                print("📦 Captured Rewards:")
+                for _, line in ipairs(rewardLines) do
+                    print("  " .. line)
+                end
+                
+                if #detectedUnits > 0 then
+                    print("🌟 UNITS DETECTED: " .. table.concat(detectedUnits, ", "))
+                end
+            end
+        end)
+    end)
+    
+    if not success then
+        warn("⚠️ Failed to hook reward system: " .. tostring(err))
+        return false
+    end
+    
+    print("✅ Successfully hooked into game reward system!")
+    return true
+end
+
+local function buildRewardsText()
+    -- First, try to use captured remote event data
+    if hasNewRewards and capturedRewards.processed then
+        local rewardsText = table.concat(capturedRewards.processed, "\n")
+        local detectedRewards = {}
+        
+        -- Build the detected rewards table for unit checking
+        if capturedRewards.rawData then
+            for _, reward in pairs(capturedRewards.rawData) do
+                detectedRewards[reward.Name] = reward.Amount and reward.Amount.Value or 1
+            end
+        end
+        
+        print("📡 Using remote event reward data (more accurate!)")
+        return rewardsText, detectedRewards, capturedRewards.units or {}
+    end
+    
+    -- Fallback to original folder scanning method
+    print("📁 Falling back to folder scanning method")
+    local rewardsRoot = player:FindFirstChild("RewardsShow")
+    if not rewardsRoot then
+        return "_No rewards found_", {}, {}
+    end
+
+    local lines = {}
+    local detectedRewards = {}
+
+    for _, folder in ipairs(rewardsRoot:GetChildren()) do
+        if folder:IsA("Folder") then
+            for _, val in ipairs(folder:GetChildren()) do
+                if val:IsA("NumberValue") then
+                    local itemName = val.Parent.Name
+                    local amount = tostring(val.Value)
+                    
+                    detectedRewards[itemName] = amount
+
+                    local totalAmount = getTotalItemAmount(itemName)
+                    local totalText = totalAmount and string.format(" [%s total]", totalAmount) or ""
+
+                    if itemName:lower():match("exp") or itemName:lower():match("gold") then
+                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
+                    else
+                        table.insert(lines, string.format("+ %s %s%s", amount, itemName, totalText))
+                    end
+                end
             end
         end
     end
 
+    if #lines == 0 then
+        return "_No reward values found_", {}, {}
+    end
+
+    return table.concat(lines, "\n"), detectedRewards, {}
+end
+
+local function sendWebhook(messageType, rewards, clearTime, matchResult)
+    if not ValidWebhook then return end
+    local data
+
+    if messageType == "test" then
+        data = {
+            username = "LixHub Bot",
+            embeds = {{
+                title = "📢 LixHub Notification",
+                description = "Test webhook sent successfully",
+                color = 0x5865F2,
+                footer = {
+                    text = "LixHub Auto Logger"
+                },
+                timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            }}
+        }
+
+    elseif messageType == "stage" then
+        local RewardsUI = player:WaitForChild("PlayerGui"):WaitForChild("HUD"):WaitForChild("InGame"):WaitForChild("Main"):WaitForChild("GameInfo")
+
+        local stageName = RewardsUI and RewardsUI:FindFirstChild("Stage") and RewardsUI.Stage.Label.Text or "Unknown Stage"
+        local gameMode = RewardsUI and RewardsUI:FindFirstChild("Gamemode") and RewardsUI.Gamemode.Label.Text or "Unknown Time"
+        local isWin = matchResult == "Victory"
+        local plrlevel = ReplicatedStorage.Player_Data[player.Name].Data.Level.Value or ""
+
+        -- NEW: Enhanced reward processing that includes remote event units
+        local rewardsText, detectedRewards, remoteUnits = buildRewardsText()
+        
+        -- Check for units using both methods
+        local foundUnits, matchedStage = findMatchingStageAndCheckUnits(detectedRewards)
+        
+        -- Combine units found by both methods
+        local allUnits = {}
+        for _, unit in ipairs(foundUnits) do
+            table.insert(allUnits, unit)
+        end
+        for _, unit in ipairs(remoteUnits) do
+            if not table.find(allUnits, unit) then
+                table.insert(allUnits, unit)
+            end
+        end
+        
+        local shouldPing = #allUnits > 0
+        local pingText = shouldPing and string.format("<@%s> 🎉 **SECRET UNIT OBTAINED!** 🎉", DISCORD_USER_ID) or ""
+
+        local stageResult = stageName .. " (" .. gameMode .. ")" .. " - " .. matchResult
+        local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+
+        local description = stageResult
+        if shouldPing then
+            description = pingText .. "\n" .. stageResult
+        end
+
+        data = {
+            username = "LixHub Bot",
+            content = shouldPing and pingText or nil,
+            embeds = {{
+                title = shouldPing and "🌟 UNIT DROP! 🌟" or "🎯 Stage Finished!",
+                description = description,
+                color = shouldPing and 0xFFD700 or (isWin and 0x57F287 or 0xED4245),
+                fields = {
+                    {
+                        name = "👤 Player",
+                        value = "||" .. player.Name .. " [" .. plrlevel .. "]" .. "||",
+                        inline = true
+                    },
+                    {
+                        name = isWin and ("✅ Won in:") or ("❌ Lost after:"),
+                        value = clearTime,
+                        inline = true
+                    },
+                    {
+                        name = shouldPing and "🏆 Rewards" or "🏆 Rewards",
+                        value = rewardsText,
+                        inline = false
+                    },
+                    shouldPing and {
+                        name = "🌟 Units Obtained",
+                        value = table.concat(allUnits, ", "),
+                        inline = false
+                    } or nil,
+                    {
+                        name = "📈 Script Version",
+                        value = "v1.2.0 (Enhanced)", -- Updated version
+                        inline = true
+                    }
+                },
+                footer = {
+                    text = "discord.gg/lixhub • Enhanced Tracking"
+                },
+                timestamp = timestamp
+            }}
+        }
+
+        -- Remove nil fields
+        local filteredFields = {}
+        for _, field in ipairs(data.embeds[1].fields) do
+            if field then
+                table.insert(filteredFields, field)
+            end
+        end
+        data.embeds[1].fields = filteredFields
+
+    else
+        return
+    end
+
+    -- Send webhook (keeping your original sending logic)
+    local payload = HttpService:JSONEncode(data)
+    local requestFunc = (syn and syn.request) or (http and http.request) or request
+    if requestFunc then
+        local success, result = pcall(function()
+            return requestFunc({
+                Url = ValidWebhook,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = payload
+            })
+        end)
+        if not success then
+            warn("Webhook failed to send: " .. tostring(result))
+        end
+    else
+        warn("No compatible HTTP request method found.")
+    end
+end
+
+local function countPartsOnPath(folder, pathFolder)
+    local count = 0
+    for _, part in ipairs(folder:GetChildren()) do
+        if part:IsA("BasePart") and part:FindFirstChildOfClass("Humanoid") then
+            local distToStart = (part.Position - pathFolder["1"].Position).Magnitude
+            local distToEnd = (part.Position - pathFolder["2"].Position).Magnitude
+            local totalDist = (pathFolder["1"].Position - pathFolder["2"].Position).Magnitude
+
+            if distToStart + distToEnd <= totalDist + 15 then -- increased tolerance
+                count += 1
+            end
+        end
+    end
     return count
 end
 
 local function getBestPath()
+    local bestPath = nil
     local lowestUnits = math.huge
-    local bestPath
 
     for i = 1, 3 do
         local pathName = "P" .. i
@@ -657,27 +845,28 @@ local function startInfinityCastleLogic()
     if infinityCastleTask then
         task.cancel(infinityCastleTask)
     end
-
+    
     infinityCastleTask = task.spawn(function()
         while autoInfinityCastleEnabled do
-            local success, err = pcall(function()
+            local success, error = pcall(function()
                 local bestPath = getBestPath()
 
                 if bestPath and bestPath ~= currentPath then
                     notify("🚀 Switching to path: ", bestPath)
                     currentPath = bestPath
 
-                    game:GetService("ReplicatedStorage").Remote.Server.Units.SelectWay:FireServer(bestPath)
+                    local args = { bestPath }
+                    game:GetService("ReplicatedStorage").Remote.Server.Units.SelectWay:FireServer(unpack(args))
                 else
                     print("✅ Staying on current path:", currentPath or "None")
                 end
             end)
-
+            
             if not success then
-                warn("❌ Infinity Castle error:", err)
+                warn("❌ Infinity Castle error:", error)
             end
-
-            task.wait(2.5)
+            
+            task.wait(2.5) -- cooldown between checks
         end
     end)
 end
@@ -699,7 +888,7 @@ local function isWantedChallengeRewardPresent()
     end
     return false, nil
 end
-
+-- Tier sorting helper
 local function getTierValue(name)
     if name:find("III") then return 3 end
     if name:find("II") then return 2 end
@@ -708,132 +897,179 @@ local function getTierValue(name)
 end
 
 local function getPlayerCurrency()
+    -- You might need to adjust this path based on your game's data structure
     local playerData = ReplicatedStorage.Player_Data[player.Name].Data
     if not playerData then return {} end
-
+    
+    -- Common currency locations - adjust as needed
     local currencies = {}
-    local gold = playerData:FindFirstChild("Gold")
-    if gold then currencies["Gold"] = gold.Value end
-
-    local gems = playerData:FindFirstChild("Gem")
-    if gems then currencies["Gem"] = gems.Value end
-
+    
+    -- Example paths - modify these based on your game
+    local GoldValue = playerData:FindFirstChild("Gold")
+    if GoldValue then
+        currencies["Gold"] = GoldValue.Value
+    end
+    
+    -- Add more currency types as needed
+    local gemsValue = playerData:FindFirstChild("Gem")
+    if gemsValue then
+        currencies["Gem"] = gemsValue.Value
+    end
     return currencies
 end
 
 local function canAffordItem(itemFolder)
     local priceValue = itemFolder:FindFirstChild("CurrencyAmount")
     local currencyTypeValue = itemFolder:FindFirstChild("CurrencyType")
-    if not priceValue or not currencyTypeValue then return false end
-
+    
+    if not priceValue or not currencyTypeValue then
+        return false
+    end
+    
+    local price = priceValue.Value
+    local currencyType = currencyTypeValue.Value
     local playerCurrencies = getPlayerCurrency()
-    return playerCurrencies[currencyTypeValue.Value] and playerCurrencies[currencyTypeValue.Value] >= priceValue.Value
+    
+    return playerCurrencies[currencyType] and playerCurrencies[currencyType] >= price
 end
 
+-- Function to purchase an item
 local function purchaseItem(itemName, quantity)
+    quantity = quantity or 1
+    
+    local args = {
+        itemName,
+        quantity
+    }
+    
     pcall(function()
-        merchantRemote:FireServer(itemName, quantity or 1)
+        merchantRemote:FireServer(unpack(args))
     end)
 end
 
 local function autoPurchaseItems()
-    if not AutoPurchaseMerchant or not MerchantPurchaseTable or #MerchantPurchaseTable == 0 then return end
-
-    local playerData = ReplicatedStorage.Player_Data[player.Name]
-    if not playerData then return end
-
+    if not AutoPurchaseMerchant then return end
+    
+    if not MerchantPurchaseTable or #MerchantPurchaseTable == 0 then  return end
+    
+     local playerData = ReplicatedStorage.Player_Data[player.Name]
+    if not playerData then return  end
+    
     local merchantFolder = playerData:FindFirstChild("Merchant")
     if not merchantFolder then return end
-
+    
     for _, selectedItem in pairs(MerchantPurchaseTable) do
         local itemFolder = merchantFolder:FindFirstChild(selectedItem)
-        if itemFolder and canAffordItem(itemFolder) then
-            local quantityValue = itemFolder:FindFirstChild("Quantity")
-            local buyAmountValue = itemFolder:FindFirstChild("BuyAmount")
+        if itemFolder then
+            -- Check if player can afford the item
+            if canAffordItem(itemFolder) then
+                local quantityValue = itemFolder:FindFirstChild("Quantity")
+                local currentquantityValue = itemFolder:FindFirstChild("BuyAmount")
+                local availableQuantity = quantityValue and quantityValue.Value or 1
+                local currentQuantity = currentquantityValue and currentquantityValue.Value or 0
 
-            local availableQuantity = quantityValue and quantityValue.Value or 1
-            local currentQuantity = buyAmountValue and buyAmountValue.Value or 0
-
-            if currentQuantity <= 0 then
-                purchaseItem(selectedItem, availableQuantity)
-                notify("Auto Purchase Merchant", "Purchased: " .. availableQuantity .. "x " .. selectedItem)
-                task.wait(0.5)
+                -- Only purchase if there's stock available
+                if currentQuantity <= 0 then
+                    purchaseItem(selectedItem, availableQuantity)
+                    notify("Auto Purchase Merchant","Purchased: "..availableQuantity.."x "..selectedItem)
+                    -- Add delay to prevent spam
+                    wait(0.5)
+                end
+            else
+                notify("Auto Purchase Merchant","Cannot Afford "..selectedItem)
             end
-        elseif itemFolder then
-            notify("Auto Purchase Merchant", "Cannot Afford " .. selectedItem)
         end
     end
 end
 
 local function autoJoinRangerStage(stageName)
-    if not isInLobby() then
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local PlayRoomEvent = ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
+    
+    if not isInLobby() then 
         print("❌ Not in lobby, cannot join ranger stage")
-        return
+        return 
     end
 
     print("🚀 Joining ranger stage:", stageName)
 
+    -- 1. Create
     PlayRoomEvent:FireServer("Create")
     task.wait(0.3)
 
+    -- 2. Change-Mode
     PlayRoomEvent:FireServer("Change-Mode", { Mode = "Ranger Stage" })
     task.wait(0.3)
 
+    -- 3. Extract world from stage name (e.g., "Naruto_RangerStage2" → "Naruto")
     local world = stageName:match("^(.-)_RangerStage")
     if not world then
         warn("❌ Couldn't extract world from:", stageName)
         return
     end
+    
 
+    -- 4. Change-World
     PlayRoomEvent:FireServer("Change-World", { World = world })
     task.wait(0.3)
 
+    -- 5. Change-Chapter
     PlayRoomEvent:FireServer("Change-Chapter", { Chapter = stageName })
     task.wait(0.3)
 
+    -- 6. Submit
     PlayRoomEvent:FireServer("Submit")
     task.wait(0.3)
 
+    -- 7. Start
     PlayRoomEvent:FireServer("Start")
-
+    
     print("✅ Ranger stage join sequence completed for:", stageName)
 end
 
+-- Global state management
 local autoJoinState = {
     isProcessing = false,
     currentAction = nil,
     lastActionTime = 0,
-    actionCooldown = 2
+    actionCooldown = 2 -- seconds between actions
 }
 
+-- Check if enough time has passed since last action
 local function canPerformAction()
     return tick() - autoJoinState.lastActionTime >= autoJoinState.actionCooldown
 end
 
+-- Set processing state
 local function setProcessingState(action)
     autoJoinState.isProcessing = true
     autoJoinState.currentAction = action
     autoJoinState.lastActionTime = tick()
-
-    local notifyActions = {
-        ["Ranger Stage Auto Join"] = true,
-        ["Challenge Auto Join"] = true,
-        ["Portal Auto Join"] = true,
-        ["Boss Attack Auto Join"] = true
-    }
-
-    if notifyActions[action] then
+    if action == "Ranger Stage Auto Join" then
+        notify("🔄 Processing: ", action)
+    elseif action == "Challenge Auto Join" then
+        notify("🔄 Processing: ", action)
+    elseif action == "Portal Auto Join" then
         notify("🔄 Processing: ", action)
     elseif action == "Story Auto Join" then
         notify("🔄 Processing: ", string.format("Joining %s - %s [%s]", selectedWorld or "?", selectedChapter or "?", selectedDifficulty or "?"))
+     elseif action == "Boss Attack Auto Join" then
+        notify("🔄 Processing: ", action)
+    elseif action == "Boss Attack Auto Join" then
+        notify("🔄 Processing: ", action)
     end
 end
 
+-- Clear processing state
 local function clearProcessingState()
     autoJoinState.isProcessing = false
     autoJoinState.currentAction = nil
 end
 
+local lastCooldownNoticeTime = 0
+local COOLDOWN_NOTICE_INTERVAL = 30 -- seconds
+
+-- Add this to get boss attack data
 local function getBossAttackTickets()
     local success, tickets = pcall(function()
         return ReplicatedStorage.Player_Data[player.Name].Data.BossAttackTicket.Value
@@ -848,10 +1084,12 @@ local function getBossTicketResetTime()
     return success and resetTime or 0
 end
 
+-- Auto join boss attack function
 local function autoJoinBossAttack()
     if not isInLobby() then return end
     print("🏆 [Priority 0] Attempting to join Boss Attack...")
-    PlayRoomEvent:FireServer("Boss-Attack")
+    local args = { "Boss-Attack" }
+    game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event"):FireServer(unpack(args))
 end
 
 local function getInternalWorldName(displayName)
@@ -860,15 +1098,19 @@ local function getInternalWorldName(displayName)
             return story.ModuleName
         end
     end
-    return nil
+    return nil -- Return nil if not found
 end
 
+-- ========== Priority Check Function ==========
 local function checkAndExecuteHighestPriority()
-    if not isInLobby() or autoJoinState.isProcessing or not canPerformAction() then return end
+    if not isInLobby() then return end
+    if autoJoinState.isProcessing then return end
+    if not canPerformAction() then return end
 
-    -- Priority 0: Boss Attack Auto Join
+    -- Priority 0: Boss Attack Auto Join (HIGHEST PRIORITY)
     if autoBossAttackEnabled then
         local currentTickets = getBossAttackTickets()
+        
         if currentTickets > 0 then
             setProcessingState("Boss Attack Auto Join")
             print("🏆 [Priority 0] Boss Attack tickets available:", currentTickets)
@@ -876,6 +1118,7 @@ local function checkAndExecuteHighestPriority()
             task.delay(5, clearProcessingState)
             return
         else
+            -- No tickets available, continue to next priority
             print("🎫 [Priority 0] No boss attack tickets available, checking other priorities...")
         end
     end
@@ -901,6 +1144,12 @@ local function checkAndExecuteHighestPriority()
             autoJoinRangerStage(stageName)
             task.delay(5, clearProcessingState)
             return
+        else
+            local now = tick()
+            if now - lastCooldownNoticeTime > COOLDOWN_NOTICE_INTERVAL then
+                lastCooldownNoticeTime = now
+                notify("⚠️ Ranger Join", "All selected stages are on cooldown.")
+            end
         end
     end
 
@@ -911,8 +1160,8 @@ local function checkAndExecuteHighestPriority()
             setProcessingState("Challenge Auto Join")
             print("🎯 Found wanted reward '" .. foundReward .. "' → creating challenge room")
             notify("Challenge Mode", string.format("Found %s, joining challenge...", foundReward))
-            PlayRoomEvent:FireServer("Create", { CreateChallengeRoom = true })
-            PlayRoomEvent:FireServer("Start")
+            PlayEvent:FireServer("Create", {CreateChallengeRoom = true})
+            PlayEvent:FireServer("Start")
             task.delay(5, clearProcessingState)
             return
         end
@@ -923,8 +1172,10 @@ local function checkAndExecuteHighestPriority()
         local success, result = pcall(function()
             local inventoryFrame = player:FindFirstChild("PlayerGui").Items.Main.Base.Space:FindFirstChild("Scrolling")
             if not inventoryFrame then return nil end
+            
+            local bestPortalName = nil
+            local bestTier = 0
 
-            local bestPortalName, bestTier = nil, 0
             for _, item in ipairs(inventoryFrame:GetChildren()) do
                 if item.Name:lower():find("portal") then
                     local tier = getTierValue(item.Name)
@@ -941,15 +1192,19 @@ local function checkAndExecuteHighestPriority()
             setProcessingState("Portal Auto Join")
             print("📦 [Priority 3] Found portal:", result)
 
-            local portalInstance = ReplicatedStorage.Player_Data[player.Name].Items:FindFirstChild(result)
+            local portalInstance = game:GetService("ReplicatedStorage").Player_Data[player.Name].Items:FindFirstChild(result)
+
             if portalInstance then
                 print("🚪 Using portal:", result)
-                ReplicatedStorage.Remote.Server.Lobby.ItemUse:FireServer(portalInstance)
+                game:GetService("ReplicatedStorage").Remote.Server.Lobby.ItemUse:FireServer(portalInstance)
                 notify("Portal", string.format("Using portal: %s", result))
+                
                 task.wait(1)
+                
                 print("▶️ Starting portal match...")
-                ReplicatedStorage.Remote.Server.Lobby.PortalEvent:FireServer("Start")
+                game:GetService("ReplicatedStorage").Remote.Server.Lobby.PortalEvent:FireServer("Start")
                 portalUsed = true
+                
                 task.delay(5, clearProcessingState)
                 return
             else
@@ -959,30 +1214,55 @@ local function checkAndExecuteHighestPriority()
             end
         end
     end
-
     -- Priority 4: Story Auto Join
     if autoJoinEnabled and selectedWorld and selectedChapter and selectedDifficulty then
         setProcessingState("Story Auto Join")
-        local internalWorldName = getInternalWorldName(selectedWorld)
+        
+        ---------------------------------------------------------------------------------------------------------------------
+       local internalWorldName = getInternalWorldName(selectedWorld)
+      --  local internalChapter = toInternalChapter(selectedChapter)
 
-        if internalWorldName then
+         if internalWorldName then
             print("📚 [Priority 4] Joining Story:", selectedWorld, "/", selectedChapter, "/", selectedDifficulty)
-
             local combinedWorld = internalWorldName .. "_" .. selectedChapter:gsub(" ", "")
-            local sequence = {
-                { "Create" },
-                { "Change-World", { World = tostring(internalWorldName) } },
-                { "Change-Chapter", { Chapter = tostring(combinedWorld) } },
-                { "Change-Difficulty", { Difficulty = tostring(selectedDifficulty) } },
-                { "Submit" },
-                { "Start" }
-            }
-
-            for _, cmd in ipairs(sequence) do
-                PlayRoomEvent:FireServer(unpack(cmd))
-                task.wait(0.25)
-            end
-
+            local args = {
+	"Create"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event"):FireServer(unpack(args))
+wait(0.25)
+local args = {
+	"Change-World",
+	{
+		World = tostring(internalWorldName)
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event"):FireServer(unpack(args))
+wait(0.25)
+local args = {
+	"Change-Chapter",
+	{
+		Chapter = tostring(combinedWorld)
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event"):FireServer(unpack(args))
+wait(0.25)
+local args = {
+	"Change-Difficulty",
+	{
+		Difficulty = tostring(selectedDifficulty)
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event"):FireServer(unpack(args))
+wait(0.25)
+local args = {
+	"Submit"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event"):FireServer(unpack(args))
+wait(0.25)
+local args = {
+	"Start"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event"):FireServer(unpack(args))
             task.delay(10, clearProcessingState)
             return
         else
@@ -995,51 +1275,64 @@ end
 
 local function getCurrentChallengeSerial()
     local success, serial = pcall(function()
-        return challengeFolder:WaitForChild("serial_number") and challengeFolder:WaitForChild("serial_number").Value
+        return challengeFolder:FindFirstChild("serial_number") and challengeFolder.serial_number.Value
     end)
     return success and serial or nil
+end
+
+if not storedChallengeSerial then
+    storedChallengeSerial = getCurrentChallengeSerial()
 end
 
 local function getUnitNameFromSlot(slotNumber)
     local success, unitInstance = pcall(function()
         return player.PlayerGui.UnitsLoadout.Main["UnitLoadout" .. slotNumber].Frame.UnitFrame.Info.Folder.Value
     end)
-
+    
     if success and unitInstance then
-        return typeof(unitInstance) == "Instance" and unitInstance.Name or tostring(unitInstance)
+        if typeof(unitInstance) == "Instance" then
+            return unitInstance.Name
+        else
+            return tostring(unitInstance)
+        end
     end
     return nil
 end
 
 local function getCurrentUpgradeLevel(unitName)
     if not unitName then return 0 end
-
+    
     local success, upgradeLevel = pcall(function()
         local upgradeText = player.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame[unitName].UpgradeText.Text
-
+        
         if string.find(upgradeText:upper(), "MAX") then
             return "MAX"
         end
-
+        
         local level = string.match(upgradeText, "Upgrade:</font>%s*(%d+)")
         return tonumber(level) or 0
     end)
-
-    return success and upgradeLevel or 0
+    
+    if success then
+        return upgradeLevel
+    else
+        print("❌ Failed to get upgrade level for:", unitName)
+        return 0
+    end
 end
 
 local function getUpgradeCost(unitName)
     if not unitName then return 9999 end
-
+    
     local success, cost = pcall(function()
         local costText = player.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame[unitName].CostText.Text
+        
         local costValue = string.match(costText, "Cost:</font>%s*([%d,]+)")
-
         if costValue then
-            return tonumber(costValue:gsub(",", "")) or 9999
+            costValue = costValue:gsub(",", "")
+            return tonumber(costValue) or 9999
         end
     end)
-
     return success and cost or 9999
 end
 
@@ -1047,80 +1340,122 @@ local function getCurrentMoney()
     local success, money = pcall(function()
         return player.Yen.Value
     end)
-    return success and money or 0
+    if success and money then
+        return money or 0
+    end
 end
 
 local function upgradeUnit(unitName)
     if not unitName then return false end
-
+    
+    local unitNameStr = typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)
+    
     local success = pcall(function()
-        UnitsRemote:FireServer(player.UnitsFolder[typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)])
+        local args = { 
+             game:GetService("Players").LocalPlayer:WaitForChild("UnitsFolder"):WaitForChild(unitNameStr)
+         }
+        game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Upgrade"):FireServer(unpack(args))
     end)
-
+    
     if success then
-        print("✅ Upgraded unit:", typeof(unitName) == "Instance" and unitName.Name or tostring(unitName))
+        print("✅ Upgraded unit:", unitNameStr)
         lastUpgradeTime = tick()
         return true
     else
-        warn("❌ Failed to upgrade unit:", typeof(unitName) == "Instance" and unitName.Name or tostring(unitName))
+        warn("❌ Failed to upgrade unit:", unitNameStr)
         return false
     end
 end
 
-local function canUpgrade()
-    return tick() - lastUpgradeTime >= UPGRADE_COOLDOWN
-end
-
 local function leftToRightUpgrade()
-    if not canUpgrade() then return end
+   -- print("🔄 Starting upgrade cycle from slot " .. currentUpgradeSlot)
     
-    local currentMoney = getCurrentMoney()
-    if currentMoney <= 0 then  return end
-    
-    -- Go through slots 1-6 from left to right
-    for slot = 1, 6 do
-        local unitName = getUnitNameFromSlot(slot)
-        if unitName and unitName ~= "" then
-            local currentLevel = getCurrentUpgradeLevel(unitName)
-            local maxLevel = unitLevelCaps[slot] or 9
-            local upgradeCost = getUpgradeCost(unitName)
+    while autoUpgradeEnabled and gameRunning do
+        local unitName = getUnitNameFromSlot(currentUpgradeSlot)
+        local unitNameStr = unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) or "nil"
+        local maxLevel = unitLevelCaps[currentUpgradeSlot] or 9
+        
+       -- print("🔍 Checking slot " .. currentUpgradeSlot .. " unit:", unitNameStr)
+
+        if unitName and unitNameStr ~= "" and unitNameStr ~= "nil" then
+            local currentLevel = getCurrentUpgradeLevel(unitNameStr)
+
+            if currentLevel == "MAX" or tonumber(currentLevel) >= maxLevel then
+                print("🏆 Unit " .. unitNameStr .. " reached max level, moving to next slot")
+                currentUpgradeSlot = currentUpgradeSlot + 1
+                
+                -- If we've checked all slots, restart from slot 1
+                if currentUpgradeSlot > 6 then
+                    currentUpgradeSlot = 1
+                   -- print("🔄 All slots checked, restarting from slot 1")
+                end
+            else
+                -- Try to upgrade current unit - STRICT ORDER: Wait for money!
+                local currentMoney = getCurrentMoney()
+                local upgradeCost = getUpgradeCost(unitNameStr)
+                
+               -- print("📊 Unit '" .. unitNameStr .. "' - Level:", tostring(currentLevel), "Max:", maxLevel, "Cost:", upgradeCost, "Money:", currentMoney)
+
+                if currentMoney >= upgradeCost then
+                   -- print("🔧 Upgrading unit:", unitNameStr)
+                    if upgradeUnit(unitNameStr) then
+                        task.wait(UPGRADE_COOLDOWN)
+                    else
+                      --  print("❌ Failed to upgrade, will retry")
+                        task.wait(1)
+                    end
+                else
+                  --  print("⏳ Waiting for money to upgrade unit:", unitNameStr, "- STAYING on this slot")
+                    
+                end
+            end
+        else
+           -- print("⚠️ No valid unit in slot " .. currentUpgradeSlot .. ", moving to next")
+            currentUpgradeSlot = currentUpgradeSlot + 1
             
-            -- Check if unit can be upgraded
-            if currentLevel < maxLevel and currentMoney >= upgradeCost then
-                print("🔧 Upgrading slot " .. slot .. " (" .. unitName .. ") from level " .. currentLevel .. " to " .. (currentLevel + 1))
-                upgradeUnit(unitName)
-                return -- Only upgrade one unit per cycle
+            if currentUpgradeSlot > 6 then
+                currentUpgradeSlot = 1
+               -- print("🔄 All slots checked, restarting from slot 1")
             end
         end
+
+        task.wait(0.5) 
     end
+    
+   -- print("🛑 Upgrade cycle ended")
 end
 
 local function startAutoUpgrade()
+    if not isInLobby() then
     if upgradeTask then
         task.cancel(upgradeTask)
     end
     
     upgradeTask = task.spawn(function()
         while autoUpgradeEnabled do
-            local success, error = pcall(function()
-                if upgradeMethod == "Left to right until max" then
-                    leftToRightUpgrade()
-                elseif upgradeMethod == "randomize" then
-                    -- TODO: Implement randomize method
-                    print("🔄 Randomize method not implemented yet")
-                elseif upgradeMethod == "lowest level spread upgrade" then
-                    -- TODO: Implement lowest level spread method
-                    print("🔄 Lowest level spread method not implemented yet")
+            -- Wait for game to be running before starting upgrades
+            if gameRunning then
+                local success, error = pcall(function()
+                    if upgradeMethod == "Left to right until max" then
+                        leftToRightUpgrade()
+                    elseif upgradeMethod == "randomize" then
+                        print("🔄 Randomize method not implemented yet")
+                    elseif upgradeMethod == "lowest level spread upgrade" then
+                        print("🔄 Lowest level spread method not implemented yet")
+                    end
+                end)
+                
+                if not success then
+                    warn("❌ Auto upgrade error:", error)
                 end
-            end)
-            
-            if not success then
-                warn("❌ Auto upgrade error:", error)
+            else
+                print("⏳ Waiting for game to start...")
             end
             
-            task.wait(2) -- Check every 2 seconds
+            task.wait(1)
         end
     end)
+end
 end
 
 local function stopAutoUpgrade()
@@ -1136,75 +1471,86 @@ local function resetUpgradeOrder()
 end
 
 local function getUnitsWithUltimates()
-    local unitsWithUltimates = {}
-    local success, result = pcall(function()
-        local agentFolder = workspace:WaitForChild("Agent", 5)
-        if not agentFolder then return end
-        
-        local unitFolder = agentFolder:WaitForChild("UnitT", 5)
-        if not unitFolder then return end
-        
-        for _, part in pairs(unitFolder:GetChildren()) do
-            if (part:IsA("BasePart") or part:IsA("Part")) then
-                local infoFolder = part:FindFirstChild("Info")
-                if infoFolder then
-                    local activeAbility = infoFolder:FindFirstChild("ActiveAbility")
-                    local targetObject = infoFolder:FindFirstChild("TargetObject")
-                    if activeAbility and targetObject and activeAbility:IsA("StringValue") and targetObject:IsA("ObjectValue") then
-                        if activeAbility.Value ~= "" and targetObject.Value then
-                            table.insert(unitsWithUltimates, {
-                                part = part,
-                                abilityName = activeAbility.Value
-                            })
-                        end
-                    end
-                end
+   local unitsWithUltimates = {}
+   local success, result = pcall(function()
+      local agentFolder = workspace:WaitForChild("Agent", 5)
+      if not agentFolder then return {} end
+      
+      local unitFolder = agentFolder:WaitForChild("UnitT", 5)
+      if not unitFolder then return {} end
+      
+      -- Check each unit for ultimate ability
+      for _, part in pairs(unitFolder:GetChildren()) do
+         if part:IsA("BasePart") or part:IsA("Part") then
+            -- Check if unit has Info folder and ActiveAbility
+            local infoFolder = part:FindFirstChild("Info")
+            if infoFolder then
+               local activeAbility = infoFolder:FindFirstChild("ActiveAbility")
+                local targetObject = infoFolder:FindFirstChild("TargetObject")
+               if activeAbility and activeAbility:IsA("StringValue") and targetObject and targetObject:IsA("ObjectValue") then
+                  -- If ActiveAbility has a value (not empty), unit has ultimate
+                  if activeAbility.Value ~= "" and targetObject.Value ~= nil then
+                     table.insert(unitsWithUltimates, {
+                        part = part,
+                        abilityName = activeAbility.Value
+                     })
+                  end
+               end
             end
-        end
-    end)
-    
-    if success then
-        return unitsWithUltimates
-    else
-        warn("Error getting units with ultimates:", result)
-        return {}
-    end
+         end
+      end
+      
+      return unitsWithUltimates
+   end)
+   
+   if success then
+      return result
+   else
+      warn("Error getting units with ultimates:", result)
+      return {}
+   end
 end
 
 local function fireUltimateForUnit(unitData)
-    pcall(function()
-        local args = { unitData.part }
-        game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Ultimate"):FireServer(unpack(args))
-    end)
+   local success, result = pcall(function()
+      local args = { unitData.part }
+      game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Ultimate"):FireServer(unpack(args))
+   end)
 end
 
 local function autoUltimateLoop()
     if isInLobby() then return end
-    
-    while AutoUltimateEnabled do
-        local unitsWithUltimates = getUnitsWithUltimates()
-        
-        if #unitsWithUltimates > 0 then
-            for _, unitData in pairs(unitsWithUltimates) do
-                if not AutoUltimateEnabled then break end
-                fireUltimateForUnit(unitData)
-                task.wait(0.1)
-            end
-        end
-        
-        task.wait(1)
-    end
+   while AutoUltimateEnabled do
+      local unitsWithUltimates = getUnitsWithUltimates()
+      
+      if #unitsWithUltimates > 0 then
+       -- print("Found", #unitsWithUltimates, "units with ultimates")
+         
+         -- Process each unit that has an ultimate
+         for _, unitData in pairs(unitsWithUltimates) do
+            if not AutoUltimateEnabled then break end -- Check if still enabled
+            
+            fireUltimateForUnit(unitData)
+            wait(0.1) -- Small delay between ultimates to prevent spam
+         end
+      else
+        -- print("No units with ultimates found")
+      end
+      
+      wait(1) -- Wait before checking again (increased since we're being more selective)
+   end
 end
 
 
 local function updateOverheadText()
-    pcall(function()
+    local success, err = pcall(function()
         local head = player.Character:WaitForChild("Head", 5)
-        local billboard = head and head:FindFirstChild("PlayerHeadGui")
+        local billboard = head:FindFirstChild("PlayerHeadGui")
+
         if billboard then
             local textLabel = billboard:FindFirstChild("PlayerName")
             if textLabel then
-                textLabel.Text = "🔥 Protected By LixHub 🔥"
+                textLabel.Text = "🔥 Protected By LixHub 🔥" -- Your custom overhead text
             end
         end
     end)
@@ -1212,12 +1558,9 @@ end
 
 player.CharacterAdded:Connect(updateOverheadText)
 
+-- Update immediately if already spawned
 if player.Character then
     updateOverheadText()
-end
-
-if not storedChallengeSerial then
-    storedChallengeSerial = getCurrentChallengeSerial()
 end
 
 task.spawn(function()
@@ -1295,8 +1638,6 @@ task.spawn(function()
         checkAndExecuteHighestPriority()
     end
 end)
-
-
 
 local LogTab = Window:CreateTab("Update Log", "scroll") -- Title, Image
 
@@ -2102,12 +2443,12 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("⏳ Webhook still on cooldown…")
         return
     end
-    
+    hasSentWebhook = true
     gameRunning = false
     resetUpgradeOrder()
-    hasSentWebhook = true
+
     -- Wait a bit longer for both remote events and folder updates
-    task.wait(0.25)
+    task.wait(0.5)
     
     -- Clean up UI elements
     if player.PlayerGui:FindFirstChild("GameEndedAnimationUI") then
@@ -2139,6 +2480,10 @@ GameEndRemote.OnClientEvent:Connect(function()
     -- Send webhook with enhanced tracking
     sendWebhook("stage", nil, clearTimeStr, matchResult)
     notify("✅ Webhook", "Stage completed and sent to Discord (Enhanced Tracking).")
+
+    -- Reset reward capture for next game
+    hasNewRewards = false
+    capturedRewards = {}
 
     -- Rest of your auto-action logic remains the same...
     if pendingBossTicketReturn then
@@ -2192,5 +2537,17 @@ GameEndRemote.OnClientEvent:Connect(function()
     end
      hasGameEnded = true
 end)
+
+-- Initialize the enhanced reward system
+print("🚀 Initializing Enhanced Reward Tracker...")
+local hookSuccess = hookRewardSystem()
+
+if hookSuccess then
+    print("✅ Enhanced reward tracking is now active!")
+    print("📡 Will capture rewards directly from game's remote events")
+    print("📁 Falls back to folder scanning if remote events fail")
+else
+    print("⚠️ Using fallback folder scanning method only")
+end
 
 Rayfield:LoadConfiguration()
