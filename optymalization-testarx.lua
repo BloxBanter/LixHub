@@ -104,6 +104,10 @@ local hasGameEnded = false
 local AutoUltimateEnabled
 local retryAttempted = false
 local retryDebounce = false
+local gameEndTime = 0
+local retryLoopRunning = false
+local maxRetryAttempts = 20 -- Maximum number of retry attempts
+local currentRetryAttempt = 0
 
 local codes = { --////////////////////////////////////////////////////////////////UPDATE\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\--
     "SorryRaids",
@@ -113,6 +117,15 @@ local codes = { --//////////////////////////////////////////////////////////////
     "BOSSTAKEOVER",
 }
 
+local function notify(title, content, duration)
+    Rayfield:Notify({
+        Title = title or "Notice",
+        Content = content or "No message.",
+        Duration = duration or 5,
+        Image = "info",
+    })
+end
+
 local function attemptRetry()
     if retryDebounce then
         print("🔁 Retry already in progress, skipping...")
@@ -120,7 +133,9 @@ local function attemptRetry()
     end
     
     retryDebounce = true
-    retryAttempted = true
+    currentRetryAttempt = currentRetryAttempt + 1
+
+     print("🔁 Attempting auto-retry... (Attempt " .. currentRetryAttempt .. "/" .. maxRetryAttempts .. ")")
     
     print("🔁 Attempting auto-retry...")
     
@@ -135,6 +150,7 @@ local function attemptRetry()
     end)
     
     if success then
+        notify("Auto Retry", "Retry vote sent! (Attempt " .. currentRetryAttempt .. ")")
         notify("Auto Retry", "Successfully voted to retry!")
         print("✅ Retry vote sent successfully")
     else
@@ -143,8 +159,46 @@ local function attemptRetry()
     end
     
     -- Reset debounce after a delay
-    task.delay(3, function()
+   task.delay(1, function()
         retryDebounce = false
+    end)
+end
+
+local function startRetryLoop()
+    if retryLoopRunning then
+        print("🔄 Retry loop already running")
+        return
+    end
+    
+    retryLoopRunning = true
+    print("🔄 Starting persistent retry loop...")
+    
+    task.spawn(function()
+        while retryLoopRunning do
+            if not gameRunning and hasGameEnded then
+                attemptRetry()
+                task.wait(3) -- Wait 3 seconds between retry attempts
+            else
+                -- Game has started, stop the loop
+                print("✅ Game started! Stopping retry loop.")
+                retryLoopRunning = false
+                break
+            end
+            
+            -- Check if we should stop the loop
+            if not autoRetryEnabled then
+                print("🛑 Auto retry disabled, stopping loop")
+                retryLoopRunning = false
+                break
+            end
+        end
+        
+        if currentRetryAttempt >= maxRetryAttempts then
+            print("⚠️ Max retry attempts reached (" .. maxRetryAttempts .. "), stopping loop")
+            notify("Auto Retry", "Max retry attempts reached. Please try manually.")
+        end
+        
+        retryLoopRunning = false
     end)
 end
 
@@ -2230,31 +2284,20 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoRetryToggle",
    Callback = function(Value)
       autoRetryEnabled = Value
-      -- If auto retry is turned on after stage ended, attempt retry
-      if Value and hasGameEnded and not retryAttempted and not gameRunning then
-          print("🔁 Auto retry enabled after stage ended - attempting retry...")
+      
+      -- If auto retry is turned on after stage ended, start retry loop
+      if Value and hasGameEnded and not gameRunning then
+          print("🔁 Auto retry enabled after stage ended - starting retry loop...")
           task.delay(0.5, function()
-              attemptRetry()
+              startRetryLoop()
           end)
+      elseif not Value then
+          -- Stop retry loop if auto retry is disabled
+          retryLoopRunning = false
+          print("🛑 Auto retry disabled - stopping any active retry loop")
       end
    end,
 })
-
---[[task.spawn(function()
-    while true do
-        task.wait(1)
-                if autoRetryEnabled then
-                if hasGameEnded then
-                 game:GetService("ReplicatedStorage")
-                :WaitForChild("Remote")
-                :WaitForChild("Server")
-                :WaitForChild("OnGame")
-                :WaitForChild("Voting")
-                :WaitForChild("VoteRetry"):FireServer()
-            end
-        end
-    end
-end)--]]
 
 local Toggle = GameTab:CreateToggle({
    Name = "Auto Lobby",
@@ -2457,6 +2500,8 @@ GameStartRemote.OnClientEvent:Connect(function(...)
 
 retryAttempted = false
         retryDebounce = false
+        retryLoopRunning = false
+        currentRetryAttempt = 0
         hasGameEnded = false
 
     if autoUpgradeEnabled then
@@ -2491,7 +2536,7 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("⏳ Webhook still on cooldown…")
         return
     end
-    hasGameEnded = true
+   hasGameEnded = true -- Set this early
     hasSentWebhook = true
     gameRunning = false
     resetUpgradeOrder()
@@ -2563,7 +2608,7 @@ GameEndRemote.OnClientEvent:Connect(function()
         print("🔁 Auto-retrying stage...")
         actionTaken = true
         task.delay(1.5, function()
-            attemptRetry()
+            startRetryLoop()
         end)
     end
 
