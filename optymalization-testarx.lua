@@ -1081,14 +1081,10 @@ local function leftToRightUpgrade()
                 task.wait(0.05) -- shorter delay when just moving to next
             else
                 if getCurrentMoney() >= getUpgradeCost(unitNameStr) then
-                    if upgradeUnit(unitNameStr) then
-                        task.wait(UPGRADE_COOLDOWN) -- delay after actual upgrade
-                    else
-                        task.wait(1) -- delay if upgrade failed
-                    end
-                else
-                    task.wait(0.1) -- short wait before retrying money
-                end
+                     upgradeUnit(unitNameStr)
+                     task.wait(UPGRADE_COOLDOWN)
+                     return
+               end
             end
         else
             currentUpgradeSlot = currentUpgradeSlot + 1
@@ -1859,27 +1855,21 @@ local Toggle = GameTab:CreateToggle({
    Flag = "AutoRetryToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
       autoRetryEnabled = Value
-      if hasGameEnded and autoRetryEnabled then
-        game:GetService("ReplicatedStorage")
-                :WaitForChild("Remote")
-                :WaitForChild("Server")
-                :WaitForChild("OnGame")
-                :WaitForChild("Voting")
-                :WaitForChild("VoteRetry"):FireServer()
-      end
    end,
 })
 
 task.spawn(function()
     while true do
         task.wait(1)
-                if autoRetryEnabled and hasGameEnded then
+                if autoRetryEnabled then
+                if hasGameEnded then
                  game:GetService("ReplicatedStorage")
                 :WaitForChild("Remote")
                 :WaitForChild("Server")
                 :WaitForChild("OnGame")
                 :WaitForChild("Voting")
                 :WaitForChild("VoteRetry"):FireServer()
+            end
         end
     end
 end)
