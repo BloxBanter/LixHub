@@ -1073,91 +1073,52 @@ end
 
 local function leftToRightUpgrade()
     if not canUpgrade() then return end
-   -- print("🔄 Starting upgrade cycle from slot " .. currentUpgradeSlot)
     
-    while autoUpgradeEnabled and gameRunning do
-        local unitName = getUnitNameFromSlot(currentUpgradeSlot)
-        local unitNameStr = unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) or "nil"
-        local maxLevel = unitLevelCaps[currentUpgradeSlot] or 9
-        
-       -- print("🔍 Checking slot " .. currentUpgradeSlot .. " unit:", unitNameStr)
-
-        if unitName and unitNameStr ~= "" and unitNameStr ~= "nil" then
-            local currentLevel = getCurrentUpgradeLevel(unitNameStr)
-
-            if currentLevel == "MAX" or tonumber(currentLevel) >= maxLevel then
-                print("🏆 Unit " .. unitNameStr .. " reached max level, moving to next slot")
-                currentUpgradeSlot = currentUpgradeSlot + 1
-                
-                -- If we've checked all slots, restart from slot 1
-                if currentUpgradeSlot > 6 then
-                    currentUpgradeSlot = 1
-                   -- print("🔄 All slots checked, restarting from slot 1")
-                end
-            else
-                -- Try to upgrade current unit - STRICT ORDER: Wait for money!
-                local currentMoney = getCurrentMoney()
-                local upgradeCost = getUpgradeCost(unitNameStr)
-                
-               -- print("📊 Unit '" .. unitNameStr .. "' - Level:", tostring(currentLevel), "Max:", maxLevel, "Cost:", upgradeCost, "Money:", currentMoney)
-
-                if currentMoney >= upgradeCost then
-                   -- print("🔧 Upgrading unit:", unitNameStr)
-                    if upgradeUnit(unitNameStr) then
-                        task.wait()
-                    else
-                      --  print("❌ Failed to upgrade, will retry")
-                        task.wait()
-                    end
-                else
-                  --  print("⏳ Waiting for money to upgrade unit:", unitNameStr, "- STAYING on this slot")
-                    
-                end
-            end
-        else
-           -- print("⚠️ No valid unit in slot " .. currentUpgradeSlot .. ", moving to next")
-            currentUpgradeSlot = currentUpgradeSlot + 1
+    local currentMoney = getCurrentMoney()
+    if currentMoney <= 0 then  return end
+    
+    -- Go through slots 1-6 from left to right
+    for slot = 1, 6 do
+        local unitName = getUnitNameFromSlot(slot)
+        if unitName and unitName ~= "" then
+            local currentLevel = getCurrentUpgradeLevel(unitName)
+            local maxLevel = unitLevelCaps[slot] or 9
+            local upgradeCost = getUpgradeCost(unitName)
             
-            if currentUpgradeSlot > 6 then
-                currentUpgradeSlot = 1
-               -- print("🔄 All slots checked, restarting from slot 1")
+            -- Check if unit can be upgraded
+            if currentLevel < maxLevel and currentMoney >= upgradeCost then
+                print("🔧 Upgrading slot " .. slot .. " (" .. unitName .. ") from level " .. currentLevel .. " to " .. (currentLevel + 1))
+                upgradeUnit(unitName)
+                return -- Only upgrade one unit per cycle
             end
         end
-
-        task.wait(0.5) 
     end
-    
-   -- print("🛑 Upgrade cycle ended")
 end
 
 local function startAutoUpgrade()
-    if isInLobby() then return end
-
     if upgradeTask then
         task.cancel(upgradeTask)
     end
-
+    
     upgradeTask = task.spawn(function()
         while autoUpgradeEnabled do
-            if gameRunning then
-                local success, errMsg = pcall(function()
-                    if upgradeMethod == "Left to right until max" then
-                        leftToRightUpgrade()
-                    elseif upgradeMethod == "randomize" then
-                        print("🔄 Randomize method not implemented yet")
-                    elseif upgradeMethod == "lowest level spread upgrade" then
-                        print("🔄 Lowest level spread method not implemented yet")
-                    end
-                end)
-
-                if not success then
-                    warn("❌ Auto upgrade error:", errMsg)
+            local success, error = pcall(function()
+                if upgradeMethod == "Left to right until max" then
+                    leftToRightUpgrade()
+                elseif upgradeMethod == "randomize" then
+                    -- TODO: Implement randomize method
+                    print("🔄 Randomize method not implemented yet")
+                elseif upgradeMethod == "lowest level spread upgrade" then
+                    -- TODO: Implement lowest level spread method
+                    print("🔄 Lowest level spread method not implemented yet")
                 end
-            else
-                print("⏳ Waiting for game to start...")
+            end)
+            
+            if not success then
+                warn("❌ Auto upgrade error:", error)
             end
-
-            task.wait(0.5)
+            
+            task.wait(2) -- Check every 2 seconds
         end
     end)
 end
