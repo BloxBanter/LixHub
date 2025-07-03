@@ -1429,7 +1429,7 @@ end
             table.insert(storyNames, story.SeriesName)
         end
         
-        StageDropdown:Refresh(storyNames, true)
+        StageDropdown:Refresh(storyNames)
         print("✅ Story dropdown updated with", #storyNames, "options")
     end)
 
@@ -1443,7 +1443,7 @@ end
             table.insert(rangerDisplayNames, stage.DisplayName)
         end
         
-        RangerStageDropdown:Refresh(rangerDisplayNames, true)
+        RangerStageDropdown:Refresh(rangerDisplayNames)
         print("✅ Ranger stage dropdown updated with", #rangerDisplayNames, "options")
     end)
 
