@@ -1436,7 +1436,7 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
-        local Toggle = JoinerTab:CreateToggle({
+        local Toggle = JoinerSection5:CreateToggle({
     Name = "Challenge Joiner",
     CurrentValue = false,
     Flag = "AutoChallengeToggle",
