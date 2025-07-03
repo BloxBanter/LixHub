@@ -16,6 +16,7 @@ do
     Remotes.Merchant = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("Merchant")
     Remotes.PlayEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
     Remotes.SettingEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event")
+    Remotes.RetryEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("OnGame"):WaitForChild("Voting"):WaitForChild("VoteRetry")
 end
 
 local GameObjects = {
@@ -1319,6 +1320,22 @@ local function updateOverheadText()
         end)
 end
 
+local function startRetryLoop()
+    if State.retryAttempted then return end
+    State.retryAttempted = true
+
+    task.spawn(function()
+        while State.retryAttempted and State.autoRetryEnabled do
+            Remotes.RetryEvent:FireServer()
+            task.wait(2) -- Retry interval (can adjust)
+        end
+    end)
+end
+
+local function stopRetryLoop()
+    State.retryAttempted = false
+end
+
 --//\\--
 
     task.spawn(function()
@@ -1417,6 +1434,8 @@ end
             end
         end
     end)
+
+    
 
 --//BUTTONS\\--
 
@@ -1780,11 +1799,101 @@ task.spawn(function()
         State.autoUpgradeEnabled = Value
         if State.autoUpgradeEnabled then
             State.gameRunning = true
-            resetUpgradeOrder() -- Always reset to slot 1 when enabling 
+            resetUpgradeOrder()
             startAutoUpgrade()
         else
             stopAutoUpgrade()
         end
+    end,
+    })
+
+      local AutoUpgradeDropdown = AutoPlayTab:CreateDropdown({
+    Name = "Select Upgrade Method",
+    Options = {"Left to right until max"},
+    CurrentOption = {"Left to right until max"},
+    MultipleOptions = false,
+    Flag = "UpgradeMethodSelector",
+    Callback = function(Options)
+        State.upgradeMethod = Options[1] or "Left to right until max"
+        if State.autoUpgradeEnabled then
+            stopAutoUpgrade()
+            resetUpgradeOrder() -- Reset when changing method
+            State.gameRunning = true
+            task.wait(0.5)
+            startAutoUpgrade()
+        end
+    end,
+    })
+
+    local Slider1 = AutoPlayTab:CreateSlider({
+    Name = "Unit 1 Level Cap",
+    Range = {0, 9},
+    Increment = 1,
+    Suffix = " Level",
+    CurrentValue = 9,
+    Flag = "Unit1LevelCap",
+    Callback = function(Value)
+        Config.unitLevelCaps[1] = Value
+    end,
+    })
+
+    local Slider2 = AutoPlayTab:CreateSlider({
+    Name = "Unit 2 Level Cap",
+    Range = {0, 9},
+    Increment = 1,
+    Suffix = " Level",
+    CurrentValue = 9,
+    Flag = "Unit2LevelCap",
+    Callback = function(Value)
+        Config.unitLevelCaps[2] = Value
+    end,
+    })
+
+    local Slider3 = AutoPlayTab:CreateSlider({
+    Name = "Unit 3 Level Cap",
+    Range = {0, 9},
+    Increment = 1,
+    Suffix = " Level",
+    CurrentValue = 9,
+    Flag = "Unit3LevelCap",
+    Callback = function(Value)
+        Config.unitLevelCaps[3] = Value
+    end,
+    })
+
+    local Slider4 = AutoPlayTab:CreateSlider({
+    Name = "Unit 4 Level Cap",
+    Range = {0, 9},
+    Increment = 1,
+    Suffix = " Level",
+    CurrentValue = 9,
+    Flag = "Unit4LevelCap",
+    Callback = function(Value)
+        Config.unitLevelCaps[4] = Value
+    end,
+    })
+
+    local Slider5 = AutoPlayTab:CreateSlider({
+    Name = "Unit 5 Level Cap",
+    Range = {0, 9},
+    Increment = 1,
+    Suffix = " Level",
+    CurrentValue = 9,
+    Flag = "Unit5LevelCap",
+    Callback = function(Value)
+        Config.unitLevelCaps[5] = Value
+    end,
+    })
+
+    local Slider6 = AutoPlayTab:CreateSlider({
+    Name = "Unit 6 Level Cap",
+    Range = {0, 9},
+    Increment = 1,
+    Suffix = " Level",
+    CurrentValue = 9,
+    Flag = "Unit6LevelCap",
+    Callback = function(Value)
+        Config.unitLevelCaps[6] = Value
     end,
     })
 
@@ -1797,5 +1906,35 @@ task.spawn(function()
         State.AutoUltimateEnabled = Value
     end,
     })
+
+    local Input = WebhookTab:CreateInput({
+    Name = "Input Webhook",
+    CurrentValue = "",
+    PlaceholderText = "Input Webhook...",
+    RemoveTextAfterFocusLost = false,
+    Flag = "WebhookInput",
+    Callback = function(Text)
+        if string.find(Text, "https://discord.com/api/webhooks/") then
+            ValidWebhook = Text
+            WebhookLabel:Set("✅ Webhook URL set!")
+        elseif Text == "" then
+            WebhookLabel:Set("Awaiting Webhook Input...")
+            ValidWebhook = nil
+        else
+            ValidWebhook = nil
+            WebhookLabel:Set("❌ Invalid Webhook URL")
+        end
+    end,
+    })
+
+Remotes.GameEnd.OnClientEvent:Connect(function()
+    if State.autoRetryEnabled then
+        startRetryLoop()
+    end
+end)
+
+Remotes.StartGame.OnClientEvent:Connect(function()
+    stopRetryLoop()
+end)
 
 Rayfield:LoadConfiguration()
