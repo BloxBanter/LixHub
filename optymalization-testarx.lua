@@ -1322,7 +1322,6 @@ end
 
 --//\\--
 
-    -- Initialize data on startup
     task.spawn(function()
         print("🔄 Fetching story data...")
         Data.availableStories = fetchStoryData()
@@ -1333,12 +1332,119 @@ end
         print("✅ Data fetching complete!")
     end)
 
-    -- ========== Main Priority Loop ==========
     task.spawn(function()
         while true do
             task.wait(0.5) -- Check every 0.5 seconds
             checkAndExecuteHighestPriority()
         end
+    end)
+
+    player.CharacterAdded:Connect(updateOverheadText)
+    if player.Character then
+        updateOverheadText()
+    end
+    task.spawn(function()
+        while true do
+            task.wait(5)
+            if State.challengeAutoReturnEnabled and not isInLobby() then
+                local currentSerial = getCurrentChallengeSerial()
+                
+                if currentSerial and State.storedChallengeSerial and currentSerial ~= State.storedChallengeSerial then
+                    notify("Challenge Update", "New challenge detected - will return to lobby when game ends")
+                    State.pendingChallengeReturn = true
+                    State.storedChallengeSerial = currentSerial
+                elseif currentSerial and not State.storedChallengeSerial then
+                    State.storedChallengeSerial = currentSerial
+                end
+            elseif isInLobby() then
+                State.pendingChallengeReturn = false
+                State.storedChallengeSerial = getCurrentChallengeSerial()
+            end
+        end
+    end)
+    task.spawn(function()
+        while true do
+            task.wait(5)
+            if State.autoReturnBossTicketResetEnabled then
+                local currentTickets = getBossAttackTickets()
+                local currentResetTime = getBossTicketResetTime()
+                if currentTickets > State.lastBossTicketCount or currentResetTime ~= State.lastBossTicketResetTime then
+                    if State.lastBossTicketCount == 0 and currentTickets > 0 then
+                        print("🎫 Boss Attack tickets reset detected! Tickets:", currentTickets)
+                        notify("Boss Tickets", string.format("Tickets reset! Now have %d tickets", currentTickets))
+                        State.pendingBossTicketReturn = true
+                    end
+                end
+                
+                State.lastBossTicketCount = currentTickets
+                State.lastBossTicketResetTime = currentResetTime
+            end
+        end
+    end)
+
+        task.spawn(function()
+        while true do
+            task.wait(2)
+            if State.autoAfkTeleportEnabled and isInLobby() and GameObjects.AFKChamberUI.Enabled == false then
+                print("🚀 Teleporting to AFK world...")
+            game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Lobby"):WaitForChild("AFKWorldTeleport"):FireServer()
+            end
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            if State.AutoPurchaseMerchant and #Data.MerchantPurchaseTable > 0 and isInLobby() then
+                autoPurchaseItems()
+            end
+            task.wait(1)
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(3)
+            if isInLobby() then
+            if State.autoClaimBP then
+            ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Events"):WaitForChild("ClaimBp"):FireServer("Claim All")
+            end
+            if State.AutoClaimQuests then
+            game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("QuestEvent"):FireServer("ClaimAll")
+            end
+            if State.AutoClaimMilestones then
+            local playerlevel = Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.Level.Value
+            game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("LevelMilestone"):FireServer(tonumber(playerlevel))
+                end
+            end
+        end
+    end)
+
+    task.spawn(function()
+        while #Data.availableStories == 0 do
+            task.wait(0.5)
+        end
+        
+        local storyNames = {}
+        for _, story in ipairs(Data.availableStories) do
+            table.insert(storyNames, story.SeriesName)
+        end
+        
+        StageDropdown:Refresh(storyNames, true)
+        print("✅ Story dropdown updated with", #storyNames, "options")
+    end)
+
+    task.spawn(function()
+        while #Data.availableRangerStages == 0 do
+            task.wait(0.5)
+        end
+        
+        local rangerDisplayNames = {}
+        for _, stage in ipairs(Data.availableRangerStages) do
+            table.insert(rangerDisplayNames, stage.DisplayName)
+        end
+        
+        RangerStageDropdown:Refresh(rangerDisplayNames, true)
+        print("✅ Ranger stage dropdown updated with", #rangerDisplayNames, "options")
     end)
 
 --//BUTTONS\\--
@@ -1392,6 +1498,18 @@ local Toggle = LobbyTab:CreateToggle({
     Flag = "AutoPurchaseMerchant",
     Callback = function(Value)
         State.AutoPurchaseMerchant = Value
+    end,
+    })
+
+     local MerchantSelectorDropdown = LobbyTab:CreateDropdown({
+    Name = "Select Items To Purchase",
+    Options = {"Dr. Megga Punk","Cursed Finger","Perfect Stats Key","Stats Key","Trait Reroll","Ranger Crystal"},
+    CurrentOption = {},
+    MultipleOptions = true,
+    Flag = "MerchantPurchaseSelector",
+    Callback = function(Options)
+        print("Selected items for auto purchase:", table.concat(Options, ", "))
+        Data.MerchantPurchaseTable = Options
     end,
     })
 
@@ -1453,20 +1571,6 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
-        task.spawn(function()
-        while #Data.availableStories == 0 do
-            task.wait(0.5)
-        end
-        
-        local storyNames = {}
-        for _, story in ipairs(Data.availableStories) do
-            table.insert(storyNames, story.SeriesName)
-        end
-        
-        StageDropdown:Refresh(storyNames, true)
-        print("✅ Story dropdown updated with", #storyNames, "options")
-    end)
-
     local ChapterDropdown = JoinerTab:CreateDropdown({
     Name = "Stage Chapter",
     Options = Config.chapters,
@@ -1502,6 +1606,20 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
+ local ChallengeDropdown = JoinerTab:CreateDropdown({
+    Name = "Select Challenge Rewards",
+    Options = {"Dr. Megga Punk","Ranger Crystal","Stats Key","Perfect Stats Key","Trait Reroll","Cursed Finger"},
+    CurrentOption = {},
+    MultipleOptions = true, -- Changed back to true for multiple selection
+    Flag = "ChallengeRewardSelector",
+    Callback = function(options)
+        Data.wantedRewards = options or {}
+        if #Data.wantedRewards > 0 then
+            print("🔎 Target rewards set to:", table.concat(Data.wantedRewards, ", "))
+        end
+    end,
+    })
+
     local Toggle = JoinerTab:CreateToggle({
         Name = "Return to Lobby on New Challenge",
         CurrentValue = false,
@@ -1519,6 +1637,9 @@ local Toggle = LobbyTab:CreateToggle({
     Flag = "AutoPortalToggle",
     Callback = function(Value)
         State.autoPortalEnabled = Value
+         if autoPortalEnabled then
+            State.portalUsed = false
+         end
     end,
     })
 
@@ -1532,6 +1653,26 @@ local Toggle = LobbyTab:CreateToggle({
             State.isAutoJoining = Value
         end,
     })
+
+    local RangerStageDropdown = JoinerTab:CreateDropdown({
+    Name = "Select Ranger Stages To Join",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "RangerStageSelector",
+    Callback = function(Options)
+        Data.selectedRawStages = {} -- Clear the array first
+        
+        for _, selectedDisplay in ipairs(Options) do
+            for _, stage in ipairs(Data.availableRangerStages) do
+                if stage.DisplayName == selectedDisplay then
+                table.insert(Data.selectedRawStages, stage.RawName)
+                break
+                end
+            end
+        end
+    end,
+})
 
     local JoinerSection5 = JoinerTab:CreateSection("Boss Attack")
 
