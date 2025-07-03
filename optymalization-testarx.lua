@@ -1419,34 +1419,6 @@ end
         end
     end)
 
-    task.spawn(function()
-        while #Data.availableStories == 0 do
-            task.wait(0.5)
-        end
-        
-        local storyNames = {}
-        for _, story in ipairs(Data.availableStories) do
-            table.insert(storyNames, story.SeriesName)
-        end
-        
-        StageDropdown:Refresh(storyNames)
-        print("✅ Story dropdown updated with", #storyNames, "options")
-    end)
-
-    task.spawn(function()
-        while #Data.availableRangerStages == 0 do
-            task.wait(0.5)
-        end
-        
-        local rangerDisplayNames = {}
-        for _, stage in ipairs(Data.availableRangerStages) do
-            table.insert(rangerDisplayNames, stage.DisplayName)
-        end
-        
-        RangerStageDropdown:Refresh(rangerDisplayNames)
-        print("✅ Ranger stage dropdown updated with", #rangerDisplayNames, "options")
-    end)
-
 --//BUTTONS\\--
 
 local Button = LobbyTab:CreateButton({
@@ -1594,6 +1566,19 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
+    task.spawn(function()
+        while #Data.availableStories == 0 do
+            task.wait(0.5)
+        end
+        
+        local storyNames = {}
+        for _, story in ipairs(Data.availableStories) do
+            table.insert(storyNames, story.SeriesName)
+        end
+        
+        StageDropdown:Refresh(storyNames)
+        print("✅ Story dropdown updated with", #storyNames, "options")
+    end)
 
     local JoinerSection2 = JoinerTab:CreateSection("Challenge Joiner")
 
@@ -1673,6 +1658,20 @@ local Toggle = LobbyTab:CreateToggle({
         end
     end,
 })
+
+task.spawn(function()
+        while #Data.availableRangerStages == 0 do
+            task.wait(0.5)
+        end
+        
+        local rangerDisplayNames = {}
+        for _, stage in ipairs(Data.availableRangerStages) do
+            table.insert(rangerDisplayNames, stage.DisplayName)
+        end
+        
+        RangerStageDropdown:Refresh(rangerDisplayNames)
+        print("✅ Ranger stage dropdown updated with", #rangerDisplayNames, "options")
+    end)
 
     local JoinerSection5 = JoinerTab:CreateSection("Boss Attack")
 
