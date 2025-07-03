@@ -20,7 +20,7 @@ end
 
 local GameObjects = {
     challengeFolder = Services.ReplicatedStorage:WaitForChild("Gameplay"):WaitForChild("Game"):WaitForChild("Challenge"),
-    AFKChamberUI = player:WaitForChild("PlayerGui"):WaitForChild("AFKChamber"),
+    AFKChamberUI = Services.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("AFKChamber"),
     STAGE_MODULES_FOLDER = Services.ReplicatedStorage.Shared.Info.GameWorld.Levels
 }
 GameObjects.itemsFolder = GameObjects.challengeFolder:WaitForChild("Items")
@@ -103,7 +103,7 @@ local ValidWebhook
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "LixHub - ARX - new?",
+   Name = "LixHub - ARX - TEST",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
    LoadingTitle = "Rayfield Interface Suite",
    LoadingSubtitle = "by Sirius",
