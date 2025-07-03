@@ -174,7 +174,7 @@ local JoinerTabDivider7 = GameTab:CreateDivider()
 
 --//LABELS\\--
 local Label1 = UpdateLogTab:CreateLabel("+Fixed Bugs, +Auto Ultimate [autoplay], +UI overhaul")
-local Label2 = JoinerTab:CreateLabel("Boss Tickets: "..Services.ReplicatedStorage.Player_Data[player.Name].Data.BossAttackTicket.Value, "ticket")
+local Label2 = JoinerTab:CreateLabel("Boss Tickets: "..Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.BossAttackTicket.Value, "ticket")
 local Label3 = JoinerTab:CreateLabel("Infinity Castle Floor: ", "badge-info")
 local Label4 = JoinerTab:CreateLabel("You need decently good units for infinity castle to win. Don't use any other auto joiners if you're enabling this and don't panic if it fails sometimes (unless your units are not good enough).", "badge-info")
 local Label5 = WebhookTab:CreateLabel("Awaiting Webhook Input...", "cable")
