@@ -1320,6 +1320,27 @@ local function updateOverheadText()
         end)
 end
 
+--//\\--
+
+    -- Initialize data on startup
+    task.spawn(function()
+        print("🔄 Fetching story data...")
+        Data.availableStories = fetchStoryData()
+        
+        print("🔄 Fetching ranger stage data...")
+        Data.availableRangerStages = fetchRangerStageData(Data.availableStories)
+        
+        print("✅ Data fetching complete!")
+    end)
+
+    -- ========== Main Priority Loop ==========
+    task.spawn(function()
+        while true do
+            task.wait(0.5) -- Check every 0.5 seconds
+            checkAndExecuteHighestPriority()
+        end
+    end)
+
 --//BUTTONS\\--
 
 local Button = LobbyTab:CreateButton({
