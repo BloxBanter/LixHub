@@ -1339,8 +1339,8 @@ end
         end
     end)
 
-    player.CharacterAdded:Connect(updateOverheadText)
-    if player.Character then
+    Services.Players.LocalPlayer.CharacterAdded:Connect(updateOverheadText)
+    if Services.Players.LocalPlayer.Character then
         updateOverheadText()
     end
     task.spawn(function()
