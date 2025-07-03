@@ -1421,6 +1421,55 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
+      local StageDropdown = JoinerTab:CreateDropdown({
+    Name = "Story Stage",
+    Options = {},
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "StoryStageSelector", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Option)
+        State.selectedWorld = Option[1]  
+    end,
+    })
+
+        task.spawn(function()
+        while #Data.availableStories == 0 do
+            task.wait(0.5)
+        end
+        
+        local storyNames = {}
+        for _, story in ipairs(Data.availableStories) do
+            table.insert(storyNames, story.SeriesName)
+        end
+        
+        StageDropdown:Refresh(storyNames, true)
+        print("✅ Story dropdown updated with", #storyNames, "options")
+    end)
+
+    local ChapterDropdown = JoinerTab:CreateDropdown({
+    Name = "Stage Chapter",
+    Options = Config.chapters,
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "StoryChapterSelector", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Option)
+        State.selectedChapter = Option[1]
+
+    end,
+    })
+    local DifficultyDropdown = JoinerTab:CreateDropdown({
+    Name = "Stage Difficulty",
+    Options = Config.difficulties,
+    CurrentOption = {},
+    MultipleOptions = false,
+    Flag = "StoryDifficultySelector", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Option)
+        State.selectedDifficulty = Option[1]
+
+    end,
+    })
+
+
     local JoinerSection2 = JoinerTab:CreateSection("Challenge Joiner")
 
         local Toggle = JoinerTab:CreateToggle({
