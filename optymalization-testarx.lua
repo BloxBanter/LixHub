@@ -17,6 +17,7 @@ do
     Remotes.PlayEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("PlayRoom"):WaitForChild("Event")
     Remotes.SettingEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event")
     Remotes.RetryEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("OnGame"):WaitForChild("Voting"):WaitForChild("VoteRetry")
+    Remotes.GameEndedUI = RS:WaitForChild("Remote"):WaitForChild("Client"):WaitForChild("UI"):WaitForChild("GameEndedUI")
 end
 
 local GameObjects = {
@@ -48,6 +49,7 @@ local State = {
     retryAttempted = false,
     retryDebounce = false,
     retryLoopRunning = false,
+    stageStartTime = nil,
     
     -- Auto settings
     autoJoinEnabled = false,
@@ -1927,10 +1929,51 @@ task.spawn(function()
     end,
     })
 
+Remotes.GameEndedUI.OnClientEvent:Connect(function(_, outcome)
+        if typeof(outcome) == "string" then
+            local l = outcome:lower()
+            if l:find("defeat") then
+                State.matchResult = "Defeat"
+            elseif l:find("won") or l:find("win") then
+                State.matchResult = "Victory"
+            else
+                State.matchResult = "Unknown"
+            end
+            print("🎯 Match result detected:", State.matchResult)
+        end
+    end)
+
 Remotes.GameEnd.OnClientEvent:Connect(function()
     if State.autoRetryEnabled then
         startRetryLoop()
     end
+    if State.hasSentWebhook then
+            print("⏳ Webhook still on cooldown…")
+            return
+        end
+        State.hasSentWebhook = true
+        resetUpgradeOrder()
+
+     if Services.Players.LocalPlayer.PlayerGui:FindFirstChild("GameEndedAnimationUI") then
+            Services.Players.LocalPlayer.PlayerGui:FindFirstChild("GameEndedAnimationUI"):Destroy()
+        end
+        if Services.Players.LocalPlayer.PlayerGui:FindFirstChild("RewardsUI").Enabled == true then
+            Services.Players.LocalPlayer.PlayerGui:FindFirstChild("RewardsUI").Enabled = false
+        end
+        if Services.Players.LocalPlayer.PlayerGui:FindFirstChild("Visual") then
+            Services.Players.LocalPlayer.PlayerGui:FindFirstChild("Visual"):Destroy()
+        end
+        if Services.Players.LocalPlayer:FindFirstChild("SavedToTeleport") then
+            Services.Players.LocalPlayer:FindFirstChild("SavedToTeleport"):Destroy()
+        end
+
+        local clearTimeStr = "Unknown"
+        if State.stageStartTime then
+            local dt = math.floor(tick() - State.stageStartTime)
+            clearTimeStr = string.format("%d:%02d", dt // 60, dt % 60)
+        end
+
+        sendWebhook("stage", nil, clearTimeStr, State.matchResult)
 end)
 
 Remotes.StartGame.OnClientEvent:Connect(function()
