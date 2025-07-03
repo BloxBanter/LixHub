@@ -1918,16 +1918,36 @@ task.spawn(function()
     Callback = function(Text)
         if string.find(Text, "https://discord.com/api/webhooks/") then
             ValidWebhook = Text
-            WebhookLabel:Set("✅ Webhook URL set!")
+            Label5:Set("✅ Webhook URL set!")
         elseif Text == "" then
-            WebhookLabel:Set("Awaiting Webhook Input...")
+            Label5:Set("Awaiting Webhook Input...")
             ValidWebhook = nil
         else
             ValidWebhook = nil
-            WebhookLabel:Set("❌ Invalid Webhook URL")
+            Label5:Set("❌ Invalid Webhook URL")
         end
     end,
     })
+
+game.ReplicatedStorage.Remote.Replicate.OnClientEvent:Connect(function(...)
+        local args = {...}
+        if table.find(args, "Game_Start") then
+            State.gameRunning = true
+        resetUpgradeOrder() -- Reset to slot 1 every time a new game starts
+        
+
+            State.retryAttempted = false
+            State.hasGameEnded = false
+
+        if State.autoUpgradeEnabled then
+            notify("Game Started", "Auto upgrade restarted!")
+        end
+
+            State.hasSentWebhook = false
+            State.stageStartTime = tick()
+            print("🟢 Stage started at", State.stageStartTime)
+        end
+    end)
 
 Remotes.GameEndedUI.OnClientEvent:Connect(function(_, outcome)
         if typeof(outcome) == "string" then
