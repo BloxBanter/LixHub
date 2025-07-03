@@ -1121,7 +1121,7 @@ local function leftToRightUpgrade()
     while State.autoUpgradeEnabled and State.gameRunning do
         local unitName = getUnitNameFromSlot(State.currentUpgradeSlot)
         local unitNameStr = unitName and (typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)) or "nil"
-        local maxLevel = unitLevelCaps[State.currentUpgradeSlot] or 9
+        local maxLevel = Config.unitLevelCaps[tonumber(State.currentUpgradeSlot)] or 9
 
         if unitName and unitNameStr ~= "" and unitNameStr ~= "nil" then
             local currentLevel = getCurrentUpgradeLevel(unitNameStr)
@@ -1934,6 +1934,7 @@ game.ReplicatedStorage.Remote.Replicate.OnClientEvent:Connect(function(...)
         if table.find(args, "Game_Start") then
             State.gameRunning = true
         resetUpgradeOrder() -- Reset to slot 1 every time a new game starts
+        stopRetryLoop()
         
 
             State.retryAttempted = false
@@ -1974,6 +1975,8 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
         State.hasSentWebhook = true
         resetUpgradeOrder()
 
+        task.wait(0.5)
+
      if Services.Players.LocalPlayer.PlayerGui:FindFirstChild("GameEndedAnimationUI") then
             Services.Players.LocalPlayer.PlayerGui:FindFirstChild("GameEndedAnimationUI"):Destroy()
         end
@@ -1997,7 +2000,7 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
 end)
 
 Remotes.StartGame.OnClientEvent:Connect(function()
-    stopRetryLoop()
+    
 end)
 
 Rayfield:LoadConfiguration()
