@@ -152,14 +152,7 @@ local WebhookTab = Window:CreateTab("Webhook", "bluetooth")
 --//SECTIONS\\--
 
 local UpdateLogSection = UpdateLogTab:CreateSection("01/07/2025")
-local StatsSection = LobbyTab:CreateSection("Stats")
-local JoinerSection = JoinerTab:CreateSection("Story Joiner")
-local JoinerSection2 = JoinerTab:CreateSection("Challenge Joiner")
-local JoinerSection3 = JoinerTab:CreateSection("Portal Joiner")
-local JoinerSection4 = JoinerTab:CreateSection("Ranger Stage Joiner")
-local JoinerSection5 = JoinerTab:CreateSection("Boss Attack")
-local JoinerSection6 = JoinerTab:CreateSection("Infinity Castle")
-local GameSection = GameTab:CreateSection("Performance")
+local StatsSection = LobbyTab:CreateSection("Lobby")
 
 --//DIVIDERS\\--
 local UpdateLogDivider = UpdateLogTab:CreateDivider()
@@ -1417,6 +1410,8 @@ local Toggle = LobbyTab:CreateToggle({
         end,
     })
 
+    local JoinerSection = JoinerTab:CreateSection("Story Joiner")
+
       local AutoJoinStoryToggle = JoinerTab:CreateToggle({
     Name = "Auto Join Story",
     CurrentValue = false,
@@ -1425,6 +1420,8 @@ local Toggle = LobbyTab:CreateToggle({
         State.autoJoinEnabled = Value
     end,
     })
+
+    local JoinerSection2 = JoinerTab:CreateSection("Challenge Joiner")
 
         local Toggle = JoinerTab:CreateToggle({
     Name = "Challenge Joiner",
@@ -1444,6 +1441,8 @@ local Toggle = LobbyTab:CreateToggle({
         end,
     })
 
+    local JoinerSection3 = JoinerTab:CreateSection("Portal Joiner")
+
      local Toggle = JoinerTab:CreateToggle({
     Name = "Portal Joiner",
     CurrentValue = false,
@@ -1453,6 +1452,8 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
+    local JoinerSection4 = JoinerTab:CreateSection("Ranger Stage Joiner")
+
         local Toggle = JoinerTab:CreateToggle({
         Name = "Auto Join Ranger Stage",
         CurrentValue = false,
@@ -1461,6 +1462,8 @@ local Toggle = LobbyTab:CreateToggle({
             State.isAutoJoining = Value
         end,
     })
+
+    local JoinerSection5 = JoinerTab:CreateSection("Boss Attack")
 
     local Label2 = JoinerTab:CreateLabel("Boss Tickets: "..Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.BossAttackTicket.Value, "ticket")
 
@@ -1491,6 +1494,8 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
+    local JoinerSection6 = JoinerTab:CreateSection("Infinity Castle")
+
     local Label3 = JoinerTab:CreateLabel("Infinity Castle Floor: ", "badge-info")
 
        local Toggle = JoinerTab:CreateToggle({
@@ -1508,6 +1513,7 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
+    local GameSection = GameTab:CreateSection("Game")
     local Label4 = JoinerTab:CreateLabel("You need decently good units for infinity castle to win. Don't use any other auto joiners if you're enabling this and don't panic if it fails sometimes (unless your units are not good enough).", "badge-info")
 
      local Toggle = GameTab:CreateToggle({
