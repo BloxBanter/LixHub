@@ -163,21 +163,9 @@ local GameSection = GameTab:CreateSection("Performance")
 
 --//DIVIDERS\\--
 local UpdateLogDivider = UpdateLogTab:CreateDivider()
-local StatsDivider = LobbyTab:CreateDivider()
-local JoinerTabDivider = JoinerTab:CreateDivider()
-local JoinerTabDivider2 = JoinerTab:CreateDivider()
-local JoinerTabDivider3 = JoinerTab:CreateDivider()
-local JoinerTabDivider4 = JoinerTab:CreateDivider()
-local JoinerTabDivider5 = JoinerTab:CreateDivider()
-local JoinerTabDivider6 = JoinerTab:CreateDivider()
-local JoinerTabDivider7 = GameTab:CreateDivider()
 
 --//LABELS\\--
 local Label1 = UpdateLogTab:CreateLabel("+Fixed Bugs, +Auto Ultimate [autoplay], +UI overhaul")
-local Label2 = JoinerTab:CreateLabel("Boss Tickets: "..Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.BossAttackTicket.Value, "ticket")
-local Label3 = JoinerTab:CreateLabel("Infinity Castle Floor: ", "badge-info")
-local Label4 = JoinerTab:CreateLabel("You need decently good units for infinity castle to win. Don't use any other auto joiners if you're enabling this and don't panic if it fails sometimes (unless your units are not good enough).", "badge-info")
-local Label5 = WebhookTab:CreateLabel("Awaiting Webhook Input...", "cable")
 
 --//FUNCTIONS\\--
 
@@ -1368,6 +1356,8 @@ local Button = GameTab:CreateButton({
         end,
     })
 
+    local Label5 = WebhookTab:CreateLabel("Awaiting Webhook Input...", "cable")
+
  local TestWebhookButton = WebhookTab:CreateButton({
     Name = "Test webhook",
     Callback = function()
@@ -1436,7 +1426,7 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
-        local Toggle = JoinerSection5:CreateToggle({
+        local Toggle = JoinerTab:CreateToggle({
     Name = "Challenge Joiner",
     CurrentValue = false,
     Flag = "AutoChallengeToggle",
@@ -1472,6 +1462,8 @@ local Toggle = LobbyTab:CreateToggle({
         end,
     })
 
+    local Label2 = JoinerTab:CreateLabel("Boss Tickets: "..Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.BossAttackTicket.Value, "ticket")
+
         local Toggle = JoinerTab:CreateToggle({
     Name = "Auto join boss attack",
     CurrentValue = false,
@@ -1499,6 +1491,8 @@ local Toggle = LobbyTab:CreateToggle({
     end,
     })
 
+    local Label3 = JoinerTab:CreateLabel("Infinity Castle Floor: ", "badge-info")
+
        local Toggle = JoinerTab:CreateToggle({
     Name = "Auto Infinity Castle",
     CurrentValue = false,
@@ -1513,6 +1507,8 @@ local Toggle = LobbyTab:CreateToggle({
         end
     end,
     })
+
+    local Label4 = JoinerTab:CreateLabel("You need decently good units for infinity castle to win. Don't use any other auto joiners if you're enabling this and don't panic if it fails sometimes (unless your units are not good enough).", "badge-info")
 
      local Toggle = GameTab:CreateToggle({
     Name = "Auto Start",
