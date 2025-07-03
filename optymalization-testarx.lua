@@ -863,14 +863,14 @@ end
 
 local function getBossAttackTickets()
     local success, tickets = pcall(function()
-        return Services.ReplicatedStorage.Player_Data[player.Name].Data.BossAttackTicket.Value
+        return Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.BossAttackTicket.Value
     end)
     return success and tickets or 0
 end
 
 local function getBossTicketResetTime()
     local success, resetTime = pcall(function()
-        return Services.ReplicatedStorage.Player_Data[player.Name].Data.BossAttackReset.Value
+        return Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.BossAttackReset.Value
     end)
     return success and resetTime or 0
 end
@@ -951,9 +951,8 @@ local function checkAndExecuteHighestPriority()
     -- Priority 3: Portal Auto Join
     if State.autoPortalEnabled and not State.portalUsed then
         local success, result = pcall(function()
-            local inventoryFrame = player:FindFirstChild("PlayerGui").Items.Main.Base.Space:FindFirstChild("Scrolling")
+            local inventoryFrame = Services.Players.LocalPlayer:FindFirstChild("PlayerGui").Items.Main.Base.Space:FindFirstChild("Scrolling")
             if not inventoryFrame then return nil end
-
             local bestPortalName = nil
             local bestTier = 0
 
@@ -973,7 +972,7 @@ local function checkAndExecuteHighestPriority()
             setProcessingState("Portal Auto Join")
             print("📦 [Priority 3] Found portal:", result)
 
-            local portalInstance = Services.ReplicatedStorage.Player_Data[player.Name].Items:FindFirstChild(result)
+            local portalInstance = Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Items:FindFirstChild(result)
             if portalInstance then
                 print("🚪 Using portal:", result)
                 Services.ReplicatedStorage.Remote.Server.Lobby.ItemUse:FireServer(portalInstance)
@@ -1041,7 +1040,7 @@ end
 
 local function getUnitNameFromSlot(slotNumber)
     local success, unitInstance = pcall(function()
-        return player.PlayerGui.UnitsLoadout.Main["UnitLoadout" .. slotNumber].Frame.UnitFrame.Info.Folder.Value
+        return Services.Players.LocalPlayer.PlayerGui.UnitsLoadout.Main["UnitLoadout" .. slotNumber].Frame.UnitFrame.Info.Folder.Value
 end)
 
     if success and unitInstance then
@@ -1055,7 +1054,7 @@ local function getCurrentUpgradeLevel(unitName)
     if not unitName then return 0 end
 
     local success, upgradeLevel = pcall(function()
-        local upgradeText = player.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame[unitName].UpgradeText.Text
+        local upgradeText = Services.Players.LocalPlayer.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame[unitName].UpgradeText.Text
 
         if string.find(upgradeText:upper(), "MAX") then
             return "MAX"
@@ -1077,7 +1076,7 @@ local function getUpgradeCost(unitName)
     if not unitName then return 9999 end
 
     local success, cost = pcall(function()
-        local costText = player.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame[unitName].CostText.Text
+        local costText = Services.Players.LocalPlayer.PlayerGui.HUD.InGame.UnitsManager.Main.Main.ScrollingFrame[unitName].CostText.Text
         local costValue = string.match(costText, "Cost:</font>%s*([%d,]+)")
         if costValue then
             costValue = costValue:gsub(",", "")
@@ -1090,7 +1089,7 @@ end
 
 local function getCurrentMoney()
     local success, money = pcall(function()
-        return player.Yen.Value
+        return Services.Players.LocalPlayer.Yen.Value
     end)
 
     return (success and money) or 0
@@ -1102,7 +1101,7 @@ local function upgradeUnit(unitName)
     local unitNameStr = typeof(unitName) == "Instance" and unitName.Name or tostring(unitName)
 
     local success = pcall(function()
-        local args = { player.UnitsFolder:WaitForChild(unitNameStr) }
+        local args = { Services.Players.LocalPlayer.UnitsFolder:WaitForChild(unitNameStr) }
         Remotes.Upgrade:FireServer(unpack(args))
     end)
 
@@ -1308,7 +1307,7 @@ end
 
 local function updateOverheadText()
         local success, err = pcall(function()
-            local head = player.Character:WaitForChild("Head", 5)
+            local head = Services.Players.LocalPlayer.Character:WaitForChild("Head", 5)
             local billboard = head:FindFirstChild("PlayerHeadGui")
 
             if billboard then
@@ -1425,7 +1424,7 @@ local Button = LobbyTab:CreateButton({
         Name = "Return to lobby",
         Callback = function()
             notify("Return to lobby", "Returning to lobby!")
-            TeleportService:Teleport(72829404259339, player)
+            TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
         end,
     })
 
@@ -1768,7 +1767,7 @@ task.spawn(function()
     Callback = function(Value)
         State.autoReturnEnabled = Value
         if State.hasGameEnded and State.autoReturnEnabled then
-            TeleportService:Teleport(72829404259339, player)
+            TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
         end
     end,
     })
