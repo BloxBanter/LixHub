@@ -1424,7 +1424,7 @@ local Button = LobbyTab:CreateButton({
         Name = "Return to lobby",
         Callback = function()
             notify("Return to lobby", "Returning to lobby!")
-            TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+            Services.TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
         end,
     })
 
@@ -1767,7 +1767,7 @@ task.spawn(function()
     Callback = function(Value)
         State.autoReturnEnabled = Value
         if State.hasGameEnded and State.autoReturnEnabled then
-            TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+            Services.TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
         end
     end,
     })
