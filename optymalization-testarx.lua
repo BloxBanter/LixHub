@@ -18,6 +18,7 @@ do
     Remotes.SettingEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Settings"):WaitForChild("Setting_Event")
     Remotes.RetryEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("OnGame"):WaitForChild("Voting"):WaitForChild("VoteRetry")
     Remotes.GameEndedUI = RS:WaitForChild("Remote"):WaitForChild("Client"):WaitForChild("UI"):WaitForChild("GameEndedUI")
+    Remotes.UpgradeUnit = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Upgrade")
 end
 
 local GameObjects = {
@@ -1105,7 +1106,7 @@ local function upgradeUnit(unitName)
 
     local success = pcall(function()
         local args = { Services.Players.LocalPlayer.UnitsFolder:WaitForChild(unitNameStr) }
-        Remotes.Upgrade:FireServer(unpack(args))
+        Remotes.UpgradeUnit:FireServer(unpack(args))
     end)
 
     if success then
