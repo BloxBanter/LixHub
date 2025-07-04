@@ -99,7 +99,7 @@ local Data = {
     availableRangerStages = {},
     storyData = {},
     worldDisplayNameMap = {},
-    CurrentCodes = {"SorryRaids","RAIDS","BizzareUpdate2!","Sorry4Delays","BOSSTAKEOVER"},
+    CurrentCodes = {"SorryRaids","RAIDS","BizzareUpdate2!","Sorry4Delays","BOSSTAKEOVER","Sorry4Quest"},
 }
 
 local ValidWebhook
@@ -1441,14 +1441,14 @@ end
             task.wait(3)
             if isInLobby() then
             if State.autoClaimBP then
-            ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Events"):WaitForChild("ClaimBp"):FireServer("Claim All")
+            Services.ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Events"):WaitForChild("ClaimBp"):FireServer("Claim All")
             end
             if State.AutoClaimQuests then
-            game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("QuestEvent"):FireServer("ClaimAll")
+            Services.ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("QuestEvent"):FireServer("ClaimAll")
             end
             if State.AutoClaimMilestones then
             local playerlevel = Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer.Name].Data.Level.Value
-            game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("LevelMilestone"):FireServer(tonumber(playerlevel))
+            Services.ReplicatedStorage:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Gameplay"):WaitForChild("LevelMilestone"):FireServer(tonumber(playerlevel))
                 end
             end
         end
@@ -1462,7 +1462,7 @@ end
                 local voteVisible = false
 
                 pcall(function()
-                    voteVisible = player:WaitForChild("PlayerGui")
+                    voteVisible = Services.Players.LocalPlayer:WaitForChild("PlayerGui")
                         :WaitForChild("HUD")
                         :WaitForChild("InGame")
                         :WaitForChild("VotePlaying").Visible
@@ -1817,7 +1817,13 @@ task.spawn(function()
     Flag = "AutoRetryToggle",
     Callback = function(Value)
         State.autoRetryEnabled = Value
-        
+        if State.hasGameEnded and State.autoRetryEnabled then
+            game:GetService("ReplicatedStorage"):WaitForChild("Remote")
+                :WaitForChild("Server")
+                :WaitForChild("OnGame")
+                :WaitForChild("Voting")
+                :WaitForChild("VoteRetry"):FireServer()
+        end
     end,
     })
 
@@ -2046,7 +2052,7 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
             State.pendingBossTicketReturn = false
             State.actionTaken = true
             task.delay(2, function()
-                TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+                Services.TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
             end)
             return
         end
@@ -2056,7 +2062,7 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
             State.pendingChallengeReturn = false
             State.actionTaken = true
             task.delay(2, function()
-                TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+                Services.TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
             end)
             return
         end
@@ -2069,7 +2075,7 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
     end
     if State.autoReturnEnabled then
          task.delay(2, function()
-                TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+                Services.TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
             end)
     end
 
