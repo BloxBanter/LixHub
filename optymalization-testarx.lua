@@ -19,6 +19,7 @@ do
     Remotes.RetryEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("OnGame"):WaitForChild("Voting"):WaitForChild("VoteRetry")
     Remotes.GameEndedUI = RS:WaitForChild("Remote"):WaitForChild("Client"):WaitForChild("UI"):WaitForChild("GameEndedUI")
     Remotes.UpgradeUnit = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("Units"):WaitForChild("Upgrade")
+    Remotes.NextEvent = RS:WaitForChild("Remote"):WaitForChild("Server"):WaitForChild("OnGame"):WaitForChild("Voting"):WaitForChild("VoteNext")
 end
 
 local GameObjects = {
@@ -48,8 +49,7 @@ local State = {
     gameRunning = false,
     hasGameEnded = false,
     retryAttempted = false,
-    retryDebounce = false,
-    retryLoopRunning = false,
+    NextAttempted = false,
     stageStartTime = nil,
     
     -- Auto settings
@@ -1339,6 +1339,22 @@ local function stopRetryLoop()
     State.retryAttempted = false
 end
 
+local function startNextLoop()
+    if State.NextAttempted then return end
+    State.NextAttempted = true
+
+    task.spawn(function()
+        while State.NextAttempted and State.autoNextEnabled do
+            Remotes.NextEvent:FireServer()
+            task.wait(2) -- Retry interval (can adjust)
+        end
+    end)
+end
+
+local function stopNextLoop()
+    State.NextAttempted = false
+end
+
 --//\\--
 
     task.spawn(function()
@@ -1936,9 +1952,11 @@ game.ReplicatedStorage.Remote.Replicate.OnClientEvent:Connect(function(...)
             State.gameRunning = true
         resetUpgradeOrder() -- Reset to slot 1 every time a new game starts
         stopRetryLoop()
+        stopNextLoop()
         
 
             State.retryAttempted = false
+            State.NextAttempted = false
             State.hasGameEnded = false
 
         if State.autoUpgradeEnabled then
@@ -1966,14 +1984,12 @@ Remotes.GameEndedUI.OnClientEvent:Connect(function(_, outcome)
     end)
 
 Remotes.GameEnd.OnClientEvent:Connect(function()
-    if State.autoRetryEnabled then
-        startRetryLoop()
-    end
     if State.hasSentWebhook then
             print("⏳ Webhook still on cooldown…")
             return
         end
         State.hasSentWebhook = true
+        State.gameRunning = false
         resetUpgradeOrder()
 
         task.wait(0.5)
@@ -1998,10 +2014,41 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
         end
 
         sendWebhook("stage", nil, clearTimeStr, State.matchResult)
-end)
 
-Remotes.StartGame.OnClientEvent:Connect(function()
-    
+        State.actionTaken = false
+
+        if State.pendingBossTicketReturn and not State.actionTaken then
+            notify("Boss Tickets", "Tickets available - returning to lobby")
+            State.pendingBossTicketReturn = false
+            State.actionTaken = true
+            task.delay(2, function()
+                TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+            end)
+            return
+        end
+
+        if State.pendingChallengeReturn and not State.actionTaken then
+            notify("Challenge Return", "New challenge detected - returning to lobby")
+            State.pendingChallengeReturn = false
+            State.actionTaken = true
+            task.delay(2, function()
+                TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+            end)
+            return
+        end
+
+    if State.autoRetryEnabled then
+        startRetryLoop()
+    end
+    if State.autoNextEnabled then
+        startNextLoop()
+    end
+    if State.autoReturnEnabled then
+         task.delay(2, function()
+                TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
+            end)
+    end
+
 end)
 
 Rayfield:LoadConfiguration()
