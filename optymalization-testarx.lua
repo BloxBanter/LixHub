@@ -1454,6 +1454,29 @@ end
         end
     end)
 
+     task.spawn(function()
+        while true do
+            task.wait(1)
+
+            if State.autoStartEnabled then
+                local voteVisible = false
+
+                pcall(function()
+                    voteVisible = player:WaitForChild("PlayerGui")
+                        :WaitForChild("HUD")
+                        :WaitForChild("InGame")
+                        :WaitForChild("VotePlaying").Visible
+                end)
+
+                if voteVisible then
+                    print("✅ Vote screen is visible — sending start signal...")
+                    Remotes.StartGame:FireServer()
+                    task.wait(3) -- optional cooldown between fires
+                end
+            end
+        end
+    end)
+
     
 
 --//BUTTONS\\--
@@ -1988,6 +2011,7 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
             print("⏳ Webhook still on cooldown…")
             return
         end
+        State.hasGameEnded = true
         State.hasSentWebhook = true
         State.gameRunning = false
         resetUpgradeOrder()
