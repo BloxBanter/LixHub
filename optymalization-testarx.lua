@@ -616,7 +616,9 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                     { name = isWin and "✅ Won in:" or "❌ Lost after:", value = clearTime, inline = true },
                     { name = "🏆 Rewards", value = rewardsText, inline = false },
                     shouldPing and { name = "🌟 Units Obtained", value = table.concat(allUnits, ", "), inline = false } or nil,
-                    { name = "📈 Script Version", value = "v1.2.0 (Enhanced)", inline = true }
+                    { name = "📈 Script Version", value = "v1.2.0 (Enhanced)", inline = true },
+                    { name = "💎 Gems", value = Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer].Data.Gem.Value, inline = true },
+                    { name = "🪙 Gold", value = Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer].Data.Gold.Value, inline = true }
                 },
                 footer = { text = "discord.gg/lixhub • Enhanced Tracking" },
                 timestamp = timestamp
