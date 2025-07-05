@@ -618,8 +618,8 @@ local function sendWebhook(messageType, rewards, clearTime, matchResult)
                     { name = "🏆 Rewards", value = rewardsText, inline = false },
                     shouldPing and { name = "🌟 Units Obtained", value = table.concat(allUnits, ", "), inline = false } or nil,
                     { name = "📈 Script Version", value = "v1.2.0 (Enhanced)", inline = true },
-                    { name = "💎 Gems", value = Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer].Data.Gem.Value, inline = true },
-                    { name = "🪙 Gold", value = Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer].Data.Gold.Value, inline = true }
+                    { name = "💎 Gems", value = tostring(Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer].Data.Gem.Value), inline = true },
+                    { name = "🪙 Gold", value = tostring(Services.ReplicatedStorage.Player_Data[Services.Players.LocalPlayer].Data.Gold.Value), inline = true }
                 },
                 footer = { text = "discord.gg/lixhub • Enhanced Tracking" },
                 timestamp = timestamp
@@ -1328,9 +1328,7 @@ local function updateOverheadText()
 end
 
 local function startRetryLoop()
-    if State.retryAttempted then return end
     State.retryAttempted = true
-
     task.spawn(function()
         while State.retryAttempted and State.autoRetryEnabled do
             Remotes.RetryEvent:FireServer()
@@ -1344,7 +1342,6 @@ local function stopRetryLoop()
 end
 
 local function startNextLoop()
-    if State.NextAttempted then return end
     State.NextAttempted = true
 
     task.spawn(function()
@@ -2099,4 +2096,4 @@ Rayfield:LoadConfiguration()
 
 --local player = game.Players.LocalPlayer
 
---player:WaitForChild("PlayerGui").Items.Main.Base.Space:FindFirstChild("Scrolling")
+--player:WaitForChild("PlayerGui").Items.Main.Base.Space:FindFirstChild("Scrolling")["Raid Ticket"].Frame.ItemFrame.Info.Amonut.Text = "x155"
