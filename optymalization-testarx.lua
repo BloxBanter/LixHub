@@ -58,6 +58,7 @@ local State = {
     autoStartEnabled = false,
     autoRetryEnabled = false,
     autoReturnEnabled = false,
+    autoDisableEndUI = false,
     autoNextEnabled = false,
     autoChallengeEnabled = false,
     autoPortalEnabled = false,
@@ -1333,7 +1334,7 @@ local function startRetryLoop()
     task.spawn(function()
         while State.retryAttempted and State.autoRetryEnabled do
             Remotes.RetryEvent:FireServer()
-            task.wait(2) -- Retry interval (can adjust)
+            task.wait(0.5) -- Retry interval (can adjust)
         end
     end)
 end
@@ -1349,7 +1350,7 @@ local function startNextLoop()
     task.spawn(function()
         while State.NextAttempted and State.autoNextEnabled do
             Remotes.NextEvent:FireServer()
-            task.wait(2) -- Retry interval (can adjust)
+            task.wait(0.5) -- Retry interval (can adjust)
         end
     end)
 end
@@ -1804,7 +1805,7 @@ task.spawn(function()
     Flag = "AutoNextToggle", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
     Callback = function(Value)
         State.autoNextEnabled = Value
-        if State.hasGameEnded and State.autoNextEnabled then
+        if State.autoNextEnabled then
             game:GetService("ReplicatedStorage"):WaitForChild("Remote")
                 :WaitForChild("Server")
                 :WaitForChild("OnGame")
@@ -1820,7 +1821,7 @@ task.spawn(function()
     Flag = "AutoRetryToggle",
     Callback = function(Value)
         State.autoRetryEnabled = Value
-        if State.hasGameEnded and State.autoRetryEnabled then
+        if State.autoRetryEnabled then
             game:GetService("ReplicatedStorage"):WaitForChild("Remote")
                 :WaitForChild("Server")
                 :WaitForChild("OnGame")
@@ -1839,6 +1840,15 @@ task.spawn(function()
         if State.hasGameEnded and State.autoReturnEnabled then
             Services.TeleportService:Teleport(72829404259339, Services.Players.LocalPlayer)
         end
+    end,
+    })
+
+    local Toggle = GameTab:CreateToggle({
+    Name = "Disable End Screen UI(s)",
+    CurrentValue = false,
+    Flag = "AutoDisableEndUI", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+    Callback = function(Value)
+        State.autoDisableEndUI = Value
     end,
     })
 
@@ -2026,7 +2036,7 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
         resetUpgradeOrder()
 
         task.wait(0.5)
-
+     if State.autoDisableEndUI then
      if Services.Players.LocalPlayer.PlayerGui:FindFirstChild("GameEndedAnimationUI") then
             Services.Players.LocalPlayer.PlayerGui:FindFirstChild("GameEndedAnimationUI"):Destroy()
         end
@@ -2036,9 +2046,10 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
         if Services.Players.LocalPlayer.PlayerGui:FindFirstChild("Visual") then
             Services.Players.LocalPlayer.PlayerGui:FindFirstChild("Visual"):Destroy()
         end
-        if Services.Players.LocalPlayer:FindFirstChild("SavedToTeleport") then
-            Services.Players.LocalPlayer:FindFirstChild("SavedToTeleport"):Destroy()
-        end
+       -- if Services.Players.LocalPlayer:FindFirstChild("SavedToTeleport") then
+          --  Services.Players.LocalPlayer:FindFirstChild("SavedToTeleport"):Destroy()
+       -- end
+    end
 
         local clearTimeStr = "Unknown"
         if State.stageStartTime then
@@ -2085,3 +2096,7 @@ Remotes.GameEnd.OnClientEvent:Connect(function()
 end)
 
 Rayfield:LoadConfiguration()
+
+--local player = game.Players.LocalPlayer
+
+--player:WaitForChild("PlayerGui").Items.Main.Base.Space:FindFirstChild("Scrolling")
